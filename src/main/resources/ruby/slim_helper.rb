@@ -29,7 +29,6 @@ module SlimHelper
   include FormHelper
 
   import Java::JavaTime::LocalDateTime
-  import Java::no.datek.dlcsuper.util::DateUtils
   import Java::OrgSpringframeworkSecurityCoreContext::SecurityContextHolder
   import Java::OrgSpringframeworkWebContextRequest::RequestContextHolder
   import Java::OrgSpringframeworkWebServletSupport::RequestContextUtils
@@ -236,7 +235,7 @@ module SlimHelper
     yield bs
   end
 
-  def formatDateTime(date_time, format = 'yyyy-MM-dd HH:mm:ss', timeZoneId: nil)
+  def formatDateTime(date_time, format = 'yyyy-MM-dd HH:mm:ss', timeZoneId: TimeZoneHelper.current_timezone(user))
     if date_time.nil?
       return ''
     end
