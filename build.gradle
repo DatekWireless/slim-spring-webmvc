@@ -1,19 +1,78 @@
 plugins {
     id 'java'
+    id 'maven-publish'
+    id 'signing'
 }
 
 group 'no.datek'
-version '1.0-SNAPSHOT'
+version '0.0.1-SNAPSHOT'
 
-repositories {
-    mavenCentral()
-}
-
-dependencies {
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+java {
+    withJavadocJar()
+    withSourcesJar()
 }
 
 test {
     useJUnitPlatform()
+}
+
+artifacts {
+    archives javadocJar, sourcesJar
+}
+
+signing {
+    sign configurations.archives
+}
+
+ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
+
+publishing {
+    repositories {
+        maven {
+            def releaseRepo = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+            def snapshotRepo = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+
+            name = "OSSRH"
+            url = isReleaseVersion ? releaseRepo : snapshotRepo
+
+            credentials {
+                username = findProperty("ossrhUsername") ?: System.getenv("OSSRH_USERNAME")
+                password = findProperty("ossrhPassword") ?: System.getenv("OSSRH_PASSWORD")
+            }
+        }
+    }
+    publications {
+        maven(MavenPublication) {
+            groupId = 'no.datek'
+            from components.java
+
+            pom {
+                name = 'slim-spring-webmvc'
+                description = 'Add https://github.com/slim-template/slim as a template engine to Spring WebMVC.'
+                url = 'https://github.com/DatekWireless/slim-spring-webmvc'
+
+                licenses {
+                    license {
+                        name = 'MIT License'
+                        url = 'https://mit-license.org/'
+                    }
+                }
+
+                scm {
+                    url = 'https://github.com/DatekWireless/slim-spring-webmvc'
+                    connection = 'scm:git://github.com:DatekWireless/slim-spring-webmvc.git'
+                    developerConnection = 'scm:git://github.com:DatekWireless/slim-spring-webmvc.git'
+                }
+
+                developers {
+                    developer {
+                        id = 'UweKubosch'
+                        name = 'Uwe Kubosch'
+                        email = 'uwe@datek.no'
+                        organizationUrl = 'https://datek.no/'
+                    }
+                }
+            }
+        }
+    }
 }
