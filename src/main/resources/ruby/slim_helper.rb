@@ -43,7 +43,7 @@ module SlimHelper
   LOG = Logger.new($stdout)
   TEMPLATE_CACHE ||= Concurrent::Map.new
   CONTENT_CACHE ||= Concurrent::Map.new
-  CONTEXT_CACHE ||= Concurrent::Map.new
+  VIEW_SHAPES ||= Concurrent::Map.new
   LAYOUT_TEMPLATE_PATH = "/views/layouts"
   DEFAULT_LAYOUT = "#{LAYOUT_TEMPLATE_PATH}/layout.slim"
   PATCHED_CLASSES = []
@@ -77,16 +77,16 @@ module SlimHelper
       params: params,
       request: request,
       session: request.getSession(),
-      user: request.session.getAttribute("user"),
+      user: request.session.getAttribute("user") || SecurityContextHolder.context&.authentication&.principal,
     }
 
     context_values = default_context.update(variables)
     context_values = context_values.update Hash[request.getAttributeNames.select { |a| a !~ /\./ && !context_values[a] }.map { |a| [a, request.getAttribute(a)] }]
-    context_class = CONTEXT_CACHE.fetch_or_store(context_values.keys) do |key|
-      LOG.info "Creating new context class (#{rendering_context.url}): #{context_values.keys}"
+    view_shape = VIEW_SHAPES.fetch_or_store(context_values.keys) do |key|
+      LOG.info "Creating new view shape (#{rendering_context.url}): #{context_values.keys}"
       Struct.new(*context_values.keys)
     end
-    context = context_class.new(*context_values.values)
+    context = view_shape.new(*context_values.values)
 
     rendering_partial = request.getAttribute(PARTIAL_ATTR)
 
