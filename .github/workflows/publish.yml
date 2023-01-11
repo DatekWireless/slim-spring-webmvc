@@ -2,7 +2,7 @@ name: Publish to Maven Central
 
 on:
   release:
-    types: [created]
+    types: [ created ]
 
 jobs:
   publish:
@@ -60,9 +60,9 @@ jobs:
 
       # Step 8
       # Optional step, will enable you to see what you have released as well here on GitHub
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: release-build-libs
-          path: build/libs
-          retention-days: 3
+      # - name: Upload Artifacts
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: release-build-libs
+      #     path: build/libs
+      #     retention-days: 3
