@@ -7,24 +7,16 @@ module ControllerUtils
     locale
   end
 
-  if defined?(Java::NoDatekM2mWebLightsController::ControllerUtils)
-    def message_source
-      messageSource = ReloadableResourceBundleMessageSource.new
-      messageSource.setCacheSeconds(300)
-      messageSource.setBasenames("classpath:lights_version", "classpath:lightsMessages")
-      ControllerUtils.setMessageSource(messageSource)
-      M2mException.setMessageSource(messageSource)
-    end
-    def message_source_accessor(locale)
-      MessageSourceAccessor.new(message_source(locale), locale)
-    end
-  else
-    def message_source
-      nil
-    end
-    def message_source_accessor(locale)
-      nil
-    end
+  @@message_source = Java::org.springframework.context.support::ReloadableResourceBundleMessageSource.new
+  @@message_source.setCacheSeconds(300)
+  @@message_source.setBasenames("classpath:lights_version", "classpath:lightsMessages")
+  Java::no.datek.m2m.kernel.exceptions::M2mException.setMessageSource(@@message_source)
+
+  def message_source
+    @@message_source
   end
 
+  def message_source_accessor(locale)
+    MessageSourceAccessor.new(message_source, locale)
+  end
 end

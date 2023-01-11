@@ -235,7 +235,7 @@ module SlimHelper
     yield bs
   end
 
-  def formatDateTime(date_time, format = 'yyyy-MM-dd HH:mm:ss', timeZoneId: TimeZoneHelper.current_timezone(user))
+  def formatDateTime(date_time, format = 'yyyy-MM-dd HH:mm:ss', timeZoneId: TimeZoneHelper.current_time_zone(user))
     if date_time.nil?
       return ''
     end
