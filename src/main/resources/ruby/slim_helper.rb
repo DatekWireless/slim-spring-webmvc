@@ -16,8 +16,8 @@ require 'kramdown'
 require 'slim'
 
 # Local source
+require 'application_setup'
 require 'bigdecimal_ext'
-require 'common_classes'
 require 'controller_utils'
 require 'form_helper'
 require 'message_source_accessor'
