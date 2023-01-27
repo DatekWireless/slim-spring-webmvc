@@ -6,3 +6,8 @@ https://github.com/DatekWireless/slim-spring-webmvc
 * https://s01.oss.sonatype.org/content/repositories/releases/no/datek/
 * https://search.maven.org/
 * https://search.maven.org/search?q=slim-spring-webmvc
+
+## Release to Maven Central
+
+* Bump the version in build.gradle
+* 

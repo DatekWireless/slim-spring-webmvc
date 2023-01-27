@@ -60,16 +60,20 @@ module SlimHelper
       super(key.to_s)
     end
 
+    application_context = rendering_context.application_context
+    message_source = application_context.get_bean(org.springframework.context.MessageSource.java_class)
+    message_source_accessor = MessageSourceAccessor.new(message_source, locale)
+
     default_context = {
       _csrf: request.getAttribute('_csrf'),
-      application_context: rendering_context.application_context,
+      application_context: application_context,
       content_store: {},
       ctx: request.contextPath,
       current_location: request.getSession().getAttribute("currentLocation"),
       currentLocation: request.getSession().getAttribute("currentLocation"),
       current_user: SecurityContextHolder.context&.authentication&.principal,
       locale: locale,
-      message: message_source_accessor(locale),
+      message: message_source_accessor,
       messages: message_source,
       messageSource: message_source,
       message_source: message_source,
