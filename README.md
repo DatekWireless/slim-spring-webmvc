@@ -10,4 +10,10 @@ https://github.com/DatekWireless/slim-spring-webmvc
 ## Release to Maven Central
 
 * Bump the version in build.gradle
-* 
+* Go to https://github.com/DatekWireless/slim-spring-webmvc/releases
+* Select "Draft a new release"
+* Select "Choose a tag"
+* Enter the tag for the new version, e.g. "v0.1.0" and **press enter**.
+* Select "Publish release"
+* The release is built and published to Maven Central at https://github.com/DatekWireless/slim-spring-webmvc/actions
+* The new package will be available within 20 minutes.
