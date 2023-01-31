@@ -135,11 +135,17 @@ module SlimHelper
       html
     end
   rescue Exception => e # rubocop: disable Lint/RescueException
-    LOG.error "Exception rendering view: #{rendering_context.url.inspect}"
-    LOG.error "#{e.class}: #{e.message}"
-    LOG.info e.backtrace.join("\n")
-    LOG.error e
-    raise
+    message = <<~HTML
+      Exception rendering view: #{rendering_context.url.inspect}
+
+      #{e.class}: #{e.message}
+
+      #{e}
+
+      #{e.backtrace.join("\n")}
+    HTML
+    LOG.error message
+    "<h1>Whoops!</h1><pre>#{message}</pre>"
   end
 
   # self in this context is the Struct with the context variables
