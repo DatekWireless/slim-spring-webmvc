@@ -1,11 +1,24 @@
 plugins {
     id 'java'
+    id "io.spring.dependency-management" version "1.1.0"
+    id "org.springframework.boot" version "2.7.6"
     id 'maven-publish'
     id 'signing'
 }
 
 group 'no.datek'
-version '0.1.1'
+version '0.2.0'
+final String JRUBY_VERSION = '9.3.6.0';
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+//    implementation "org.jruby:jruby:$JRUBY_VERSION"
+}
 
 java {
     withJavadocJar()
