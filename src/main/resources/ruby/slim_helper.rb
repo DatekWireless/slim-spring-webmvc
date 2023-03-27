@@ -146,7 +146,7 @@ module SlimHelper
       #{e.backtrace.join("\n")}
     HTML
     LOG.error message
-    "<h1>Whoops!</h1><pre>#{message}</pre>"
+    "<h1>Whoops!</h1><pre>#{CGI.escapeHTML(message)}</pre>"
   end
 
   # self in this context is the Struct with the context variables
