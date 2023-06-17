@@ -44,10 +44,11 @@ module FormHelper
   end
 
   def bootstrap_checkbox(object, field_name, **opts)
-    wrapper_class = "form-check #{opts.delete(:wrapper_class)}".strip
+    wrapper_class = "form-check #{opts.delete(:wrapper_class) || 'mb-3'}".strip
     control_class = "form-check-input #{opts.delete(:control_class)}".strip
     <<~HTML
       <div class="#{wrapper_class}">
+        <label class="form-label d-none d-md-block">&nbsp;</label>
         #{checkbox(object, field_name, hide_label_suffix: true, label_class: "form-check-label", class: control_class, **opts)}
       </div>
     HTML

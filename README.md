@@ -9,7 +9,7 @@ https://github.com/DatekWireless/slim-spring-webmvc
 
 ## Release to Maven Central
 
-* Bump the version in build.gradle
+* Bump the version in build.gradle and commit and push.
 * Go to https://github.com/DatekWireless/slim-spring-webmvc/releases
 * Select "Draft a new release"
 * Select "Choose a tag"
