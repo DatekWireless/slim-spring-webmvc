@@ -11,7 +11,7 @@ module FormHelper
     id_name = opts.delete(:id) || field_name
     no_hidden = opts.delete(:no_hidden)
     value = opts[:value]
-    no_break = opts.delete(:no_break) || opts.delete(:inline)
+    no_break = opts.key?(:no_break) || opts.key?(:inline) ? opts.delete(:no_break) || opts.delete(:inline) : true
     appendix = opts.delete(:append)
     disabled = opts.delete(:disabled)
 
@@ -23,17 +23,20 @@ module FormHelper
       else
         object[field_name] == "true"
       end
-    html = %{<input type="checkbox" name="#{field_name}" id="#{id_name}" #{'checked="checked"' if checked} #{:disabled if disabled}}
+    html = +''
+    unless no_hidden
+      html << %{<input type="hidden" name="_#{field_name}" value="false" />}
+    end
+    html << %{<input type="checkbox" name="#{field_name}" id="#{id_name}" #{'checked="checked"' if checked} #{:disabled if disabled}}
     opts.each do |key, value|
       html << %{ #{key}="#{value}"}
     end
     html << "/>"
-    unless no_hidden
-      html << %{<input type="hidden" name="_#{field_name}" value="false" />}
-    end
 
     unless hide_label
-      html << %{<label for="#{id_name}" class="#{label_class}" style="#{label_style}">#{CGI.escapeHTML(label)}</label>}
+      html << %{<label for="#{id_name}" class="#{label_class}"}
+      html << %{ style="#{label_style}"} if label_style
+      html << %{>#{CGI.escapeHTML(label)}</label>}
     end
     if appendix
       html << "<label for='#{id_name}' style='float:none;width:auto;display:inline;margin-left:0.5rem'>#{appendix}</label>"
@@ -44,14 +47,26 @@ module FormHelper
   end
 
   def bootstrap_checkbox(object, field_name, **opts)
-    wrapper_class = "form-check #{opts.delete(:wrapper_class) || 'mb-3'}".strip
+    group_label = opts.key?(:group_label) ? opts.delete(:group_label) : '&nbsp;'
+    wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : 'mb-3'
     control_class = "form-check-input #{opts.delete(:control_class)}".strip
-    <<~HTML
-      <div class="#{wrapper_class}">
-        <label class="form-label d-none d-md-block">&nbsp;</label>
+    html = <<~HTML
+      <div class="form-check #{'py-2' if group_label && wrapper_class}">
         #{checkbox(object, field_name, hide_label_suffix: true, label_class: "form-check-label", class: control_class, **opts)}
       </div>
     HTML
+
+    html.prepend(%{<label class="form-label d-none d-md-block">#{group_label}</label>}) if group_label
+
+    if wrapper_class
+      <<~HTML
+        <div class="#{wrapper_class}">
+          #{html}
+        </div>
+      HTML
+    else
+      html
+    end
   end
 
   def custom_checkbox(object, field_name, **opts)
@@ -99,14 +114,8 @@ module FormHelper
   end
 
   def text_input(object, field_name, **opts)
-    hide_label = opts.delete(:hide_label) || opts.delete(:no_label)
-    label_style = opts.delete(:label_style)
-    label_key = opts.delete(:label_key) || "text.#{field_name}"
-    label_class = opts.delete(:label_class)
-    label_suffix = opts.delete(:hide_label_suffix) ? nil : ':'
-    label = opts.delete(:label) || "#{message[label_key]}#{label_suffix}"
     id_name = opts.delete(:id) || field_name.to_s.gsub('.', '_')
-    no_break = opts.delete(:no_break) || opts.delete(:inline)
+    no_break = opts.key?(:no_break) || opts.key?(:inline) ? opts.delete(:no_break) || opts.delete(:inline) : true
     appendix = opts.delete(:append)
     disabled = opts.delete(:disabled)
     readonly = opts.delete(:readonly)
@@ -115,14 +124,10 @@ module FormHelper
     value = opts.delete(:value)
     placeholder = opts.delete(:placeholder)
 
-    if hide_label
-      html = ""
-    else
-      html = %{<label for="#{field_name}" class="#{label_class}" style="#{label_style}">#{CGI.escapeHTML(label)}</label> }
-    end
+    html = ""
 
     html << '<span>' if appendix
-    html << %{<div class="input-group" >} if addon
+    html << %{<div class="input-group flex-nowrap" >} if addon
 
     field_value = value || object_field_value(object, field_name)
 
@@ -162,7 +167,27 @@ module FormHelper
 
   def bootstrap_text_input(object, field_name, **opts)
     classes = field_classes(object, field_name, opts.delete(:class))
-    text_input(object, field_name, hide_label_suffix: true, class: classes, **opts)
+    hide_label = opts.delete(:hide_label) || opts.delete(:no_label)
+    label_key = opts.delete(:label_key) || "text.#{field_name}"
+    hide_label_suffix = opts.key?(:hide_label_suffix) ? opts.delete(:hide_label_suffix) : true
+    label_suffix = hide_label_suffix ? nil : ':'
+    label = opts.delete(:label) || "#{message[label_key]}#{label_suffix}"
+    label_class = opts.delete(:label_class) || 'form-label'
+    label_style = opts.delete(:label_style)
+    wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : 'mb-3'
+
+    if hide_label
+      html = ''
+    else
+      label = label == '' ? '&nbsp;' : CGI.escapeHTML(label)
+      html = %{<label for="#{field_name}" class="#{label_class}"}
+      html << %{ style="#{label_style}"} if label_style
+      html << %{>#{label}</label> }
+    end
+    html << text_input(object, field_name, class: classes, no_break: true, **opts)
+    <<~HTML
+      <div class="#{wrapper_class}">#{html}</div>
+    HTML
   end
 
   def hidden_input(object, field_name, **opts)
@@ -215,7 +240,7 @@ module FormHelper
 
   def bootstrap_textarea(object, field_name, **opts)
     classes = field_classes(object, field_name, opts.delete(:class))
-    textarea(object, field_name, hide_label_suffix: true, class: classes, **opts)
+    textarea(object, field_name, hide_label_suffix: true, class: classes, no_break: true, **opts)
   end
 
   private def object_field_value(object, field_name)
@@ -224,12 +249,6 @@ module FormHelper
   end
 
   def select_input(object, field_name, option_map = [], **opts)
-    hide_label = opts.delete(:hide_label) || opts.delete(:no_label)
-    label_style = opts.delete(:label_style)
-    label_class = opts.delete(:label_class)
-    label_key = opts.delete(:label_key) || "text.#{field_name}"
-    label_suffix = opts.delete(:hide_label_suffix) ? nil : ':'
-    label = opts.delete(:label) || "#{message[label_key]}#{label_suffix}"
     id_name = opts.delete(:id) || field_name
     no_break = opts.delete(:no_break) || opts.delete(:inline)
     prompt = opts.delete(:prompt)
@@ -239,14 +258,9 @@ module FormHelper
     ondblclick = opts.delete(:ondblclick)
     addon = opts.delete(:addon)
 
-    if hide_label
-      html = ""
-    else
-      html = %{<label for="#{id_name}" class="#{label_class}" style="#{label_style}">#{CGI.escapeHTML(label)}</label>}
-    end
-
+    html = ''
     html << '<span>' if appendix
-    html << %{<div class="input-group" >} if addon
+    html << %{<div class="input-group flex-nowrap" >} if addon
 
     html << %{<select name="#{field_name}" id="#{id_name}" #{:disabled if disabled} #{:multiple if multiple} }
     if prompt
@@ -272,7 +286,8 @@ module FormHelper
 
     selected_values = multiple ? field_value.split(',') : [field_value]
     option_map.each do |value, label = value|
-      html << %{<option value="#{value}" ondblclick="#{ondblclick}"}
+      html << %{<option value="#{value}"}
+      html << %{ ondblclick="#{ondblclick}"} if ondblclick
       if selected_values.include?(value.to_s.strip)
         html << %{ selected="selected"}
       end
@@ -288,12 +303,7 @@ module FormHelper
       html << %{<input type="hidden" name="_#{field_name}" value="" />}
     end
 
-    if addon
-      html << %{<label for="#{id_name}" class="input-group-text">}
-      html << addon
-      html << %{</label></div>}
-    end
-
+    html << "#{addon}</div>" if addon
     html << "<br/>" unless no_break
     html
   end
@@ -301,24 +311,45 @@ module FormHelper
   alias select_field select_input
 
   def bootstrap_select_input(object, field_name, option_map = [], **opts, &block)
+    opts[:id] ||= field_name
     classes = select_classes(object, field_name, opts.delete(:class))
-    select_input(object, field_name, option_map, hide_label_suffix: true, class: classes, **opts, &block)
+    hide_label = opts.delete(:hide_label) || opts.delete(:no_label)
+    label_style = opts.delete(:label_style)
+    label_class = opts.delete(:label_class) || 'form-label'
+    label_key = opts.delete(:label_key) || "text.#{field_name}"
+    hide_label_suffix = opts.key?(:hide_label_suffix) ? opts.delete(:hide_label_suffix) : true
+    label_suffix = hide_label_suffix ? nil : ':'
+    label = opts.delete(:label) || "#{message[label_key]}#{label_suffix}"
+    wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : 'mb-3'
+
+    if hide_label
+      html = ""
+    else
+      html = %{<label for="#{opts[:id]}" class="#{label_class}" style="#{label_style}">#{CGI.escapeHTML(label)}</label>}
+    end
+
+    html << select_input(object, field_name, option_map, class: classes, no_break: true, **opts, &block)
+    <<~HTML
+      <div class="#{wrapper_class}">#{html}</div>
+    HTML
   end
 
   # Will only work with Bootstrap
   def datetime_input(object, field_name, **opts)
     hide_label = opts.delete(:hide_label) || opts.delete(:no_label)
+    label_class = opts.delete(:label_class) || 'form-label'
     label_style = opts.delete(:label_style)
     input_group_style = opts.delete(:input_group_style)
     label_key = opts.delete(:label_key) || "text.#{field_name}"
     id_name = opts.delete(:id) || field_name
     classes = opts.delete(:class)
+    wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : 'mb-3'
     wrapper_classes = opts.delete(:wrapper_class)
 
     if hide_label
       html = ""
     else
-      html = %{<label for="#{field_name}" style="#{label_style}">#{message[label_key]}</label> }
+      html = %{<label for="#{field_name}" class="#{label_class}" style="#{label_style}">#{message[label_key]}</label> }
     end
 
     html << %{<div class="input-group flex-nowrap #{wrapper_classes}"}
@@ -327,7 +358,7 @@ module FormHelper
     end
     html << '>'
 
-    html << %{<input type="text" name="#{field_name}" class="form-control datetime #{classes}" id="#{id_name}" value="#{object_field_value(object, field_name)}" style="min-width: 9.5rem;" }
+    html << %{<input type="text" name="#{field_name}" class="form-control datetime #{classes}" id="#{id_name}" value="#{object_field_value(object, field_name)}" style="min-width: 10.1rem;" }
     opts.each do |key, value|
       html << %{ #{key}="#{value}"}
     end
@@ -336,14 +367,19 @@ module FormHelper
     html << %{<label for="#{id_name}"  class="input-group-text">}
     html << %{<span class="input-group-addon"><i class="far fa-calendar-alt"></i></span>}
     html << %{</label></div>}
+
+    <<~HTML
+      <div class="#{wrapper_class}">#{html}</div>
+    HTML
   end
 
   def date_input(object, field_name, **opts)
-    text_input object, field_name, { label_class: "date-label", size: 10 }.merge(opts)
+    text_input object, field_name, **{ label_class: "date-label", size: 10, style: 'min-width:7rem' }.merge(opts)
   end
 
   def bootstrap_date_input(object, field_name, **opts)
     hide_label = opts.delete(:hide_label) || opts.delete(:no_label)
+    label_class = opts.delete(:label_class) || 'form-label'
     label_style = opts.delete(:label_style)
     input_group_style = opts.delete(:input_group_style)
     label_key = opts.delete(:label_key) || "text.#{field_name}"
@@ -353,14 +389,15 @@ module FormHelper
     min_date = opts.delete(:min_date)
     invalid_input = opts.delete(:invalid_input)
     value = opts.delete(:value)
+    wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : 'mb-3'
 
     if hide_label
       html = ""
     else
-      html = %{<label for="#{field_name}" style="#{label_style}">#{message[label_key]}</label> }
+      html = %{<label for="#{field_name}" class="#{label_class}" style="#{label_style}">#{message[label_key]}</label> }
     end
 
-    html << %{<div class="input-group"}
+    html << %{<div class="input-group flex-nowrap"}
     if input_group_style
       html << %{style="#{input_group_style}"}
     end
@@ -368,17 +405,9 @@ module FormHelper
 
     field_value = value || object_field_value(object, field_name)
 
-    html << %{<input type="text" name="#{field_name}" class="form-control date #{classes} #{"is-invalid" if invalid_input}" id="#{id_name}" value="#{field_value}" }
-    if max_date
-      html << %{ data-max-date="#{max_date}"}
-    end
-    if min_date
-      html << %{ data-min-date="#{min_date}"}
-    end
-    opts.each do |key, value|
-      html << %{ #{key}="#{value}"}
-    end
-    html << "/>"
+    opts['data-max-date'] = max_date if max_date
+    opts['data-min-date'] = min_date if min_date
+    html << date_input(object, field_name, class: "form-control date #{classes} #{"is-invalid" if invalid_input}", id: "#{id_name}", value: "#{field_value}", **opts)
 
     html << %{<label for="#{id_name}"  class="input-group-text">}
     html << %{<span class="input-group-addon"><i class="far fa-calendar-alt"></i></span>}
@@ -387,6 +416,9 @@ module FormHelper
       html << %{<div class="invalid-feedback">#{invalid_input}</div>}
     end
     html << %{</div>}
+    <<~HTML
+      <div class="#{wrapper_class}">#{html}</div>
+    HTML
   end
 
   def bootstrap_tristate_checkbox(object, field_name, **opts)
@@ -418,6 +450,30 @@ module FormHelper
     html << "<br/>" unless no_break
 
     html
+  end
+
+  def bootstrap_file_field(object, field_name, **opts)
+    hide_label = opts.delete(:hide_label) || opts.delete(:no_label)
+    label_class = opts.delete(:label_class) || 'form-label'
+    label_style = opts.delete(:label_style)
+    label_key = opts.delete(:label_key) || "text.#{field_name}"
+    wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : 'mb-3'
+
+    if hide_label
+      html = ""
+    else
+      html = %{<label for="#{field_name}" class="#{label_class}" style="#{label_style}">#{message[label_key]}</label> }
+    end
+
+    html << <<~HTML
+      <div class="input-group">
+        <input type="file" class="form-control" id=#{field_name} name=#{field_name} accept="image/*" />
+        <label class="form-label" for=#{field_name} />
+      </div>
+    HTML
+    <<~HTML
+      <div class="#{wrapper_class}">#{html}</div>
+    HTML
   end
 
   JS_ESCAPE_MAP =   { "\\" => "\\\\", "</" => '<\/', "\r\n" => '\n', "\n" => '\n', "\r" => '\n', '"' => '\\"', "'" => "\\'", "`" => "\\`", "$" => "\\$" }.freeze
