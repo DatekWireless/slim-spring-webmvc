@@ -3,7 +3,7 @@ require 'cgi/escape'
 module FormHelper
   def checkbox(object, field_name, **opts)
     hide_label = opts.delete(:hide_label) || opts.delete(:no_label)
-    label_key = opts.delete(:label_key) || "text.#{field_name}"
+    label_key = label_key_opt(opts, field_name)
     label_style = opts.delete(:label_style)
     label_class = opts.delete(:label_class)
     label_suffix = opts.delete(:hide_label_suffix) ? nil : ':'
@@ -71,7 +71,7 @@ module FormHelper
 
   def custom_checkbox(object, field_name, **opts)
     hide_label = opts.delete(:hide_label) || opts.delete(:no_label)
-    label_key = opts.delete(:label_key) || "text.#{field_name}"
+    label_key = label_key_opt(opts, field_name)
     label_style = opts.delete(:label_style)
     label_class = opts.delete(:label_class)
     label = opts.delete(:label) || "#{message[label_key]}"
@@ -168,7 +168,7 @@ module FormHelper
   def bootstrap_text_input(object, field_name, **opts)
     classes = field_classes(object, field_name, opts.delete(:class))
     hide_label = opts.delete(:hide_label) || opts.delete(:no_label)
-    label_key = opts.delete(:label_key) || "text.#{field_name}"
+    label_key = label_key_opt(opts, field_name)
     hide_label_suffix = opts.key?(:hide_label_suffix) ? opts.delete(:hide_label_suffix) : true
     label_suffix = hide_label_suffix ? nil : ':'
     label = opts.delete(:label) || "#{message[label_key]}#{label_suffix}"
@@ -209,7 +209,7 @@ module FormHelper
   def textarea(object, field_name, **opts)
     hide_label = opts.delete(:hide_label) || opts.delete(:no_label)
     label_style = opts.delete(:label_style)
-    label_key = opts.delete(:label_key) || "text.#{field_name}"
+    label_key = label_key_opt(opts, field_name)
     label_suffix = opts.delete(:hide_label_suffix) ? nil : ':'
     label = opts.delete(:label) || "#{message[label_key]}#{label_suffix}"
     id_name = opts.delete(:id) || field_name
@@ -316,7 +316,7 @@ module FormHelper
     hide_label = opts.delete(:hide_label) || opts.delete(:no_label)
     label_style = opts.delete(:label_style)
     label_class = opts.delete(:label_class) || 'form-label'
-    label_key = opts.delete(:label_key) || "text.#{field_name}"
+    label_key = label_key_opt(opts, field_name)
     hide_label_suffix = opts.key?(:hide_label_suffix) ? opts.delete(:hide_label_suffix) : true
     label_suffix = hide_label_suffix ? nil : ':'
     label = opts.delete(:label) || "#{message[label_key]}#{label_suffix}"
@@ -340,7 +340,7 @@ module FormHelper
     label_class = opts.delete(:label_class) || 'form-label'
     label_style = opts.delete(:label_style)
     input_group_style = opts.delete(:input_group_style)
-    label_key = opts.delete(:label_key) || "text.#{field_name}"
+    label_key = label_key_opt(opts, field_name)
     id_name = opts.delete(:id) || field_name
     classes = opts.delete(:class)
     wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : 'mb-3'
@@ -382,7 +382,7 @@ module FormHelper
     label_class = opts.delete(:label_class) || 'form-label'
     label_style = opts.delete(:label_style)
     input_group_style = opts.delete(:input_group_style)
-    label_key = opts.delete(:label_key) || "text.#{field_name}"
+    label_key = label_key_opt(opts, field_name)
     id_name = opts.delete(:id) || field_name
     classes = opts.delete(:class)
     max_date = opts.delete(:max_date)
@@ -456,7 +456,7 @@ module FormHelper
     hide_label = opts.delete(:hide_label) || opts.delete(:no_label)
     label_class = opts.delete(:label_class) || 'form-label'
     label_style = opts.delete(:label_style)
-    label_key = opts.delete(:label_key) || "text.#{field_name}"
+    label_key = label_key_opt(opts, field_name)
     wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : 'mb-3'
 
     if hide_label
@@ -485,5 +485,11 @@ module FormHelper
     else
       javascript.gsub(/(\\|<\/|\r\n|\342\200\250|\342\200\251|[\n\r"']|[`]|[$])/u, JS_ESCAPE_MAP)
     end
+  end
+
+  private
+
+  def label_key_opt(opts, field_name)
+    opts.delete(:label_key) || ["field.#{field_name}", "label.#{field_name}", field_name, "text.#{field_name}"]
   end
 end

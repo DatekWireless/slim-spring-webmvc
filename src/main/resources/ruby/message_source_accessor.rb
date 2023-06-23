@@ -4,7 +4,11 @@ class MessageSourceAccessor
     @locale = locale
   end
 
-  def [](key, *args)
-    @message_source.get_message(key, args.to_java, "???#{key}???", @locale)
+  def [](keys, *args)
+    [*keys].each do |key|
+      m = @message_source.get_message(key.to_s, args.to_java, nil, @locale)
+      return m if m
+    end
+    "???#{keys}???"
   end
 end
