@@ -115,37 +115,20 @@ module FormHelper
 
   def text_input(object, field_name, **opts)
     id_name = opts.delete(:id) || field_name.to_s.gsub('.', '_')
-    no_break = opts.key?(:no_break) || opts.key?(:inline) ? opts.delete(:no_break) || opts.delete(:inline) : true
-    appendix = opts.delete(:append)
     disabled = opts.delete(:disabled)
     readonly = opts.delete(:readonly)
     type = opts.delete(:type) || 'text'
-    addon = opts.delete(:addon)
     value = opts.delete(:value)
     placeholder = opts.delete(:placeholder)
 
     html = ""
-
-    html << '<span>' if appendix
-    html << %{<div class="input-group flex-nowrap" >} if addon
-
     field_value = value || object_field_value(object, field_name)
-
     html << %{<input type="#{type}" name="#{field_name}" id="#{id_name}" value="#{field_value}"}
     html << %{ #{:disabled if disabled} #{:readonly if readonly} #{"placeholder='#{placeholder}'" if placeholder}}
-
     opts.each do |key, value|
       html << %{ #{key}="#{value}"}
     end
     html << "/>"
-    html << "<label for='#{id_name}' style='float:none;width:auto;display:inline;margin-left:0.5rem'>#{appendix}</label></span>" if appendix
-    if addon
-      html << %{<label for="#{id_name}" class="input-group-text">}
-      html << addon
-      html << %{</label></div>}
-    end
-
-    html << "<br/>" unless no_break
     html
   end
 
@@ -174,6 +157,7 @@ module FormHelper
     label = opts.delete(:label) || "#{message[label_key]}#{label_suffix}"
     label_class = opts.delete(:label_class) || 'form-label'
     label_style = opts.delete(:label_style)
+    appendix = opts.delete(:append) || opts.delete(:addon)
     wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : 'mb-3'
 
     if hide_label
@@ -184,7 +168,12 @@ module FormHelper
       html << %{ style="#{label_style}"} if label_style
       html << %{>#{label}</label> }
     end
+    html << %{<div class="input-group flex-nowrap" >} if appendix
     html << text_input(object, field_name, class: classes, no_break: true, **opts)
+    if appendix
+      html << appendix
+      html << '</div>'
+    end
     <<~HTML
       <div class="#{wrapper_class}">#{html}</div>
     HTML
