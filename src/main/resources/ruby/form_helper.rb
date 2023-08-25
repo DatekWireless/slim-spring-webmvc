@@ -353,9 +353,12 @@ module FormHelper
     end
     html << "/>"
 
-    html << %{<label for="#{id_name}"  class="input-group-text">}
-    html << %{<span class="input-group-addon"><i class="far fa-calendar-alt"></i></span>}
-    html << %{</label></div>}
+    unless opts[:disabled]
+      html << %{<label for="#{id_name}"  class="input-group-text">}
+      html << %{<span class="input-group-addon"><i class="far fa-calendar-alt"></i></span>}
+      html << %{</label>}
+    end
+    html << %{</div>}
 
     <<~HTML
       <div class="#{wrapper_class}">#{html}</div>
@@ -398,9 +401,12 @@ module FormHelper
     opts['data-min-date'] = min_date if min_date
     html << date_input(object, field_name, class: "form-control date #{classes} #{"is-invalid" if invalid_input}", id: "#{id_name}", value: "#{field_value}", **opts)
 
-    html << %{<label for="#{id_name}"  class="input-group-text">}
-    html << %{<span class="input-group-addon"><i class="far fa-calendar-alt"></i></span>}
-    html << %{</label>}
+    unless opts[:disabled]
+      html << %{<label for="#{id_name}"  class="input-group-text">}
+      html << %{<span class="input-group-addon"><i class="far fa-calendar-alt"></i></span>}
+      html << %{</label>}
+    end
+
     if invalid_input
       html << %{<div class="invalid-feedback">#{invalid_input}</div>}
     end
