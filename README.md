@@ -14,6 +14,7 @@ https://github.com/DatekWireless/slim-spring-webmvc
 * Select "Draft a new release"
 * Select "Choose a tag"
 * Enter the tag for the new version, e.g. "v0.1.0" and **press enter**.
-* Select "Publish release"
-* The release is built and published to Maven Central at https://github.com/DatekWireless/slim-spring-webmvc/actions
+* Click on "Publish release"
+* This will trigger a release on https://github.com/DatekWireless/slim-spring-webmvc/actions
+* The release is built and published to Maven Central at https://search.maven.org/search?q=slim-spring-webmvc
 * The new package will be available within 20 minutes.
