@@ -157,7 +157,7 @@ module FormHelper
     label = opts.delete(:label) || "#{message[label_key]}#{label_suffix}"
     label_class = opts.delete(:label_class) || 'form-label'
     label_style = opts.delete(:label_style)
-    appendix = opts.delete(:append) || opts.delete(:addon)
+    append = opts.delete(:append)
     wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : 'mb-3'
 
     if hide_label
@@ -168,10 +168,14 @@ module FormHelper
       html << %{ style="#{label_style}"} if label_style
       html << %{>#{label}</label> }
     end
-    html << %{<div class="input-group flex-nowrap" >} if appendix
+    html << %{<div class="input-group flex-nowrap" >} if append
     html << text_input(object, field_name, class: classes, no_break: true, **opts)
-    if appendix
-      html << appendix
+    if append
+      if append.include?('btn')
+        html << append
+      else
+        html << %{<span class="input-group-text">#{append}</span>}
+      end
       html << '</div>'
     end
     <<~HTML
