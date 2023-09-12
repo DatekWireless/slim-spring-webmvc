@@ -117,6 +117,7 @@ module FormHelper
     id_name = opts.delete(:id) || field_name.to_s.gsub('.', '_')
     disabled = opts.delete(:disabled)
     readonly = opts.delete(:readonly)
+    required = opts.delete(:required)
     type = opts.delete(:type) || 'text'
     value = opts.delete(:value)
     placeholder = opts.delete(:placeholder)
@@ -124,7 +125,7 @@ module FormHelper
     html = ""
     field_value = value || object_field_value(object, field_name)
     html << %{<input type="#{type}" name="#{field_name}" id="#{id_name}" value="#{field_value}"}
-    html << %{ #{:disabled if disabled} #{:readonly if readonly} #{"placeholder='#{placeholder}'" if placeholder}}
+    html << %{ #{:disabled if disabled} #{:readonly if readonly} #{:required if required} #{"placeholder='#{placeholder}'" if placeholder}}
     opts.each do |key, value|
       html << %{ #{key}="#{value}"}
     end
@@ -159,12 +160,13 @@ module FormHelper
     label_style = opts.delete(:label_style)
     append = opts.delete(:append)
     wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : 'mb-3'
+    required = opts[:required]
 
     if hide_label
       html = ''
     else
       label = label == '' ? '&nbsp;' : CGI.escapeHTML(label)
-      html = %{<label for="#{field_name}" class="#{label_class}"}
+      html = %{<label for="#{field_name}" class="#{label_class} #{:required if required}"}
       html << %{ style="#{label_style}"} if label_style
       html << %{>#{label}</label> }
     end
