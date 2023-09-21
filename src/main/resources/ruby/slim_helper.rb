@@ -72,6 +72,7 @@ module SlimHelper
       ctx: request.contextPath,
       current_location: current_location,
       currentLocation: current_location,
+      current_location_id: current_location.location_id,
       current_user: SecurityContextHolder.context&.authentication&.principal,
       locale: locale,
       message: message_source_accessor,
