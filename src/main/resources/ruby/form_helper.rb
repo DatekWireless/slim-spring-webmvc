@@ -251,11 +251,9 @@ module FormHelper
     disabled = opts.delete(:disabled)
     multiple = opts.delete(:multiple)
     ondblclick = opts.delete(:ondblclick)
-    addon = opts.delete(:addon)
 
     html = ''
     html << '<span>' if appendix
-    html << %{<div class="input-group flex-nowrap" >} if addon
 
     html << %{<select name="#{field_name}" id="#{id_name}" #{:disabled if disabled} #{:multiple if multiple} }
     if prompt
@@ -298,7 +296,6 @@ module FormHelper
       html << %{<input type="hidden" name="_#{field_name}" value="" />}
     end
 
-    html << "#{addon}</div>" if addon
     html << "<br/>" unless no_break
     html
   end
@@ -316,6 +313,7 @@ module FormHelper
     label_suffix = hide_label_suffix ? nil : ':'
     label = opts.delete(:label) || "#{message[label_key]}#{label_suffix}"
     wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : 'mb-3'
+    append = opts.delete(:append)
 
     if hide_label
       html = ""
@@ -323,7 +321,16 @@ module FormHelper
       html = %{<label for="#{opts[:id]}" class="#{label_class}" style="#{label_style}">#{CGI.escapeHTML(label)}</label>}
     end
 
+    html << %{<div class="input-group flex-nowrap" >} if append
     html << select_input(object, field_name, option_map, class: classes, no_break: true, **opts, &block)
+    if append
+      if append.include?('btn')
+        html << append
+      else
+        html << %{<span class="input-group-text">#{append}</span>}
+      end
+      html << '</div>'
+    end
     <<~HTML
       <div class="#{wrapper_class}">#{html}</div>
     HTML
