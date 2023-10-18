@@ -16,13 +16,14 @@ require 'kramdown'
 require 'slim'
 
 # Local source
-require 'application_setup'
+require 'request_context'
 require 'bigdecimal_ext'
 require 'controller_utils'
 require 'form_helper'
 require 'message_source_accessor'
 require 'partial_request'
 require 'string_response'
+require 'application_setup'
 
 module SlimHelper
   include ControllerUtils
@@ -60,34 +61,10 @@ module SlimHelper
       super(key.to_s)
     end
 
-    application_context = rendering_context.application_context
-    message_source = application_context.get_bean(org.springframework.context.MessageSource.java_class)
-    message_source_accessor = MessageSourceAccessor.new(message_source, locale)
-    current_location = request.getSession().getAttribute("currentLocation")
-
-    default_context = {
-      _csrf: request.getAttribute('_csrf'),
-      application_context: application_context,
-      content_store: {},
-      ctx: request.contextPath,
-      current_location: current_location,
-      currentLocation: current_location,
-      current_location_id: current_location.location_id,
-      current_user: SecurityContextHolder.context&.authentication&.principal,
-      locale: locale,
-      message: message_source_accessor,
-      messages: message_source,
-      messageSource: message_source,
-      message_source: message_source,
-      param: params,
-      params: params,
-      request: request,
-      session: request.getSession(),
-      user: request.session.getAttribute("user") || SecurityContextHolder.context&.authentication&.principal,
-    }
-
-    context_values = default_context.update(variables)
-    context_values = context_values.update Hash[request.getAttributeNames.select { |a| a !~ /\./ && !context_values[a] }.map { |a| [a, request.getAttribute(a)] }]
+    context_values = RequestContext.default_context(locale, params, rendering_context, request)
+    context_values.update variables
+    context_values.update Hash[request.getAttributeNames.select { |a| a !~ /\./ && !context_values[a] }.map { |a| [a, request.getAttribute(a)] }]
+    context_values.update RequestContext.application_attributes(request)
     view_shape = VIEW_SHAPES.fetch_or_store(context_values.keys) do |key|
       LOG.info "Creating new view shape (#{rendering_context.url}): #{context_values.keys}"
       Struct.new(*context_values.keys)
