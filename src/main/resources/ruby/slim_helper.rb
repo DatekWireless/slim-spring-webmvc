@@ -64,6 +64,7 @@ module SlimHelper
     context_values = RequestContext.default_context(locale, params, rendering_context, request)
     context_values.update variables
     context_values.update Hash[request.getAttributeNames.select { |a| a !~ /\./ && !context_values[a] }.map { |a| [a, request.getAttribute(a)] }]
+    context_values.update Hash[request.session.getAttributeNames.select { |a| a !~ /\./ && !context_values[a] }.map { |a| [a, request.session.getAttribute(a)] }]
     context_values.update RequestContext.application_attributes(request)
     view_shape = VIEW_SHAPES.fetch_or_store(context_values.keys) do |key|
       LOG.info "Creating new view shape (#{rendering_context.url}): #{context_values.keys}"
