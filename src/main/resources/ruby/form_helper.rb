@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'cgi/escape'
 
 module FormHelper
@@ -50,7 +52,7 @@ module FormHelper
     group_label = opts.key?(:group_label) ? opts.delete(:group_label) : '&nbsp;'
     wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : 'mb-3'
     control_class = "form-check-input #{opts.delete(:control_class)}".strip
-    html = <<~HTML
+    html = +<<~HTML
       <div class="form-check #{'py-2' if group_label && wrapper_class}">
         #{checkbox(object, field_name, hide_label_suffix: true, label_class: "form-check-label", class: control_class, **opts)}
       </div>
@@ -91,7 +93,7 @@ module FormHelper
         object[field_name] == "true"
       end
 
-    html = '<div class="form-check mb-0">'
+    html = +'<div class="form-check mb-0">'
     html << %{<input type="checkbox" class="form-check-input" name="#{field_name}" id="#{id_name}" #{'checked="checked"' if checked} #{:disabled if disabled}}
     opts.each do |key, value|
       html << %{ #{key}="#{value}"}
@@ -122,7 +124,7 @@ module FormHelper
     value = opts.delete(:value)
     placeholder = opts.delete(:placeholder)
 
-    html = ""
+    html = +""
     field_value = value || object_field_value(object, field_name)
     html << %{<input type="#{type}" name="#{field_name}" id="#{id_name}" value="#{field_value}"}
     html << %{ #{:disabled if disabled} #{:readonly if readonly} #{:required if required} #{"placeholder='#{placeholder}'" if placeholder}}
@@ -134,7 +136,7 @@ module FormHelper
   end
 
   private def field_classes(object, field_name, custom_classes)
-    classes = "form-control"
+    classes = +"form-control"
 
     classes << ' ' << custom_classes if custom_classes
     classes << ' is-invalid' if object&.hasFieldErrors(field_name.to_s)
@@ -142,7 +144,7 @@ module FormHelper
   end
 
   private def select_classes(object, field_name, custom_classes)
-    classes = "form-select"
+    classes = +"form-select"
 
     classes << ' ' << custom_classes if custom_classes
     classes << ' is-invalid' if object&.hasFieldErrors(field_name.to_s)
@@ -163,10 +165,10 @@ module FormHelper
     required = opts[:required]
 
     if hide_label
-      html = ''
+      html = +''
     else
-      label = label == '' ? '&nbsp;' : CGI.escapeHTML(label)
-      html = %{<label for="#{field_name}" class="#{label_class} #{:required if required}"}
+      label = label == '' ? +'&nbsp;' : CGI.escapeHTML(label)
+      html = +%{<label for="#{field_name}" class="#{label_class} #{:required if required}"}
       html << %{ style="#{label_style}"} if label_style
       html << %{>#{label}</label> }
     end
@@ -190,7 +192,7 @@ module FormHelper
 
     field_value = object_field_value(object, field_name)
 
-    html = %{<input type="hidden" name="#{field_name}" id="#{id_name}" value="#{field_value}"}
+    html = +%{<input type="hidden" name="#{field_name}" id="#{id_name}" value="#{field_value}"}
 
     opts.each do |key, value|
       html << %{ #{key}="#{value}"}
@@ -213,9 +215,9 @@ module FormHelper
     disabled = opts.delete(:disabled)
 
     if hide_label
-      html = ""
+      html = +""
     else
-      html = %{<label for="#{field_name}" style="#{label_style}">#{CGI.escapeHTML(label)}</label> }
+      html = +%{<label for="#{field_name}" style="#{label_style}">#{CGI.escapeHTML(label)}</label> }
     end
 
     html << '<span>' if appendix
@@ -252,7 +254,7 @@ module FormHelper
     multiple = opts.delete(:multiple)
     ondblclick = opts.delete(:ondblclick)
 
-    html = ''
+    html = +''
     html << '<span>' if appendix
 
     html << %{<select name="#{field_name}" id="#{id_name}" #{:disabled if disabled} #{:multiple if multiple} }
@@ -316,9 +318,9 @@ module FormHelper
     append = opts.delete(:append)
 
     if hide_label
-      html = ""
+      html = +""
     else
-      html = %{<label for="#{opts[:id]}" class="#{label_class}" style="#{label_style}">#{CGI.escapeHTML(label)}</label>}
+      html = +%{<label for="#{opts[:id]}" class="#{label_class}" style="#{label_style}">#{CGI.escapeHTML(label)}</label>}
     end
 
     html << %{<div class="input-group flex-nowrap" >} if append
@@ -349,9 +351,9 @@ module FormHelper
     wrapper_classes = opts.delete(:wrapper_class)
 
     if hide_label
-      html = ""
+      html = +""
     else
-      html = %{<label for="#{field_name}" class="#{label_class}" style="#{label_style}">#{message[label_key]}</label> }
+      html = +%{<label for="#{field_name}" class="#{label_class}" style="#{label_style}">#{message[label_key]}</label> }
     end
 
     html << %{<div class="input-group flex-nowrap #{wrapper_classes}"}
@@ -397,9 +399,9 @@ module FormHelper
     wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : 'mb-3'
 
     if hide_label
-      html = ""
+      html = +""
     else
-      html = %{<label for="#{field_name}" class="#{label_class}" style="#{label_style}">#{message[label_key]}</label> }
+      html = +%{<label for="#{field_name}" class="#{label_class}" style="#{label_style}">#{message[label_key]}</label> }
     end
 
     html << %{<div class="input-group flex-nowrap"}
@@ -436,7 +438,7 @@ module FormHelper
     field_value = object[field_name]
     is_on = field_value.nil? ? nil : field_value == "true"
 
-    html = <<-END_HTML
+    html = +<<-END_HTML
     <div class="tri-state-wrapper">
       <input type="radio" name="#{field_name}" class="tri-state-yes" id="yes-#{field_name}" value="true" #{"checked='true'" if is_on} />
       <label for="yes-#{field_name}">
@@ -468,9 +470,9 @@ module FormHelper
     wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : 'mb-3'
 
     if hide_label
-      html = ""
+      html = +""
     else
-      html = %{<label for="#{field_name}" class="#{label_class}" style="#{label_style}">#{message[label_key]}</label> }
+      html = +%{<label for="#{field_name}" class="#{label_class}" style="#{label_style}">#{message[label_key]}</label> }
     end
 
     html << <<~HTML

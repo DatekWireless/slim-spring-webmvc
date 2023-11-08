@@ -1,4 +1,5 @@
-puts "Loading RequestContext"
+# frozen_string_literal: true
+
 module RequestContext
   EMPTY_HASH = {}.freeze
 
@@ -7,7 +8,6 @@ module RequestContext
     message_source = application_context.get_bean(org.springframework.context.MessageSource.java_class)
     message_source_accessor = MessageSourceAccessor.new(message_source, locale)
     {
-      _csrf: request.getAttribute('_csrf'),
       application_context: application_context,
       content_store: {},
       ctx: request.contextPath,

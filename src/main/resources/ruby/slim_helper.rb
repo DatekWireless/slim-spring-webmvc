@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 ["uri:classloader:/ruby", "uri:classloader:/gems", "uri:classloader:/gems/concurrent-ruby",].each do |path|
   $LOAD_PATH << path unless $LOAD_PATH.include?(path)
 end
@@ -21,7 +23,6 @@ require 'bigdecimal_ext'
 require 'controller_utils'
 require 'form_helper'
 require 'message_source_accessor'
-require 'partial_request'
 require 'string_response'
 require 'application_setup'
 
@@ -39,7 +40,7 @@ module SlimHelper
     '/views/error.slim',
   ]
 
-  PARTIAL_ATTR = '__partial'
+  PARTIAL_ATTR = 'no.datek.slim.partial'
   # LOG = Java::OrgApacheLog4j::Logger.getLogger(name)
   LOG = Logger.new($stdout)
   TEMPLATE_CACHE ||= Concurrent::Map.new
@@ -62,9 +63,9 @@ module SlimHelper
     end
 
     context_values = RequestContext.default_context(locale, params, rendering_context, request)
-    context_values.update variables
-    context_values.update Hash[request.getAttributeNames.select { |a| a !~ /\./ && !context_values[a] }.map { |a| [a, request.getAttribute(a)] }]
-    context_values.update Hash[request.session.getAttributeNames.select { |a| a !~ /\./ && !context_values[a] }.map { |a| [a, request.session.getAttribute(a)] }]
+    context_values.update Hash[variables.map{|k,v| [k.to_sym, v]}]
+    context_values.update Hash[request.getAttributeNames.select { |a| a !~ /\./ && !context_values[a.to_sym] }.map { |a| [a.to_sym, request.getAttribute(a)] }]
+    context_values.update Hash[request.session.getAttributeNames.select { |a| a !~ /\./ && !context_values[a.to_sym] }.map { |a| [a.to_sym, request.session.getAttribute(a)] }]
     context_values.update RequestContext.application_attributes(request)
     view_shape = VIEW_SHAPES.fetch_or_store(context_values.keys) do |key|
       LOG.info "Creating new view shape (#{rendering_context.url}): #{context_values.keys}"
@@ -138,16 +139,12 @@ module SlimHelper
 
     raise "COULD NOT FIND VIEW #{view_path.inspect}" if view.nil?
 
+    map = self.to_h.update Hash[params.map { |k, v| [k, v] }]
+    request.setAttribute(PARTIAL_ATTR, true)
     partial_response = StringResponse.new(request.character_encoding)
 
-    r = PartialRequest.new(request, Hash[params.select { |k, v| String === v }.map { |k, v| [k.to_s, [v].to_java(:string)] }])
-
-    r.setAttribute(PARTIAL_ATTR, true)
-    each_pair { |k, v| r.setAttribute(k.to_s, v) }
-    map = Hash[params.map { |k, v| [k.to_s, v] }]
-
     # render_start = Time.now
-    view.render(map, r, partial_response)
+    view.render(map, request, partial_response)
 
     # LOG.info "Create template: #{render_start - load_start}, render: #{Time.now - render_start}, file: #{LAYOUT_TEMPLATE_PATH}"
 
@@ -176,7 +173,7 @@ module SlimHelper
 
   def capture(&block)
     backup_buf = block.binding.local_variable_get(:_buf)
-    block.binding.local_variable_set(:_buf, StringIO.new("", "w+t:UTF-8:UTF-8"))
+    block.binding.local_variable_set(:_buf, StringIO.new(+"", "w+t:UTF-8:UTF-8"))
     block.call
     buffer = block.binding.local_variable_get(:_buf)
     block.binding.local_variable_set(:_buf, backup_buf)

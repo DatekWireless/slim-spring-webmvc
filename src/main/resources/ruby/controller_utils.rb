@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module ControllerUtils
   def current_locale(request)
     locale = RequestContextUtils.getLocale(request)

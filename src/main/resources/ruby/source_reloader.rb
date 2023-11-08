@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'listen'
 
 layout_url = JRuby.runtime.jruby_class_loader.getResource(SlimHelper::DEFAULT_LAYOUT.delete_prefix('/'))

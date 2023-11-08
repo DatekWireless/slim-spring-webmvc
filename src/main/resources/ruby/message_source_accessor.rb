@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class MessageSourceAccessor
   def initialize(message_source, locale)
     @message_source = message_source
