@@ -18,4 +18,4 @@ https://github.com/DatekWireless/slim-spring-webmvc
 * This will trigger a release on https://github.com/DatekWireless/slim-spring-webmvc/actions
 * The release is built and published to Maven Central at
   https://s01.oss.sonatype.org/#nexus-search;quick~no.datek
-* The new package will be available within 20 minutes.
+* The new package will be available after about 10 minutes.
