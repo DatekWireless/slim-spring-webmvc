@@ -20,14 +20,14 @@ require 'slim'
 # Local source
 require 'request_context'
 require 'bigdecimal_ext'
-require 'controller_utils'
+require 'locale_helper'
 require 'form_helper'
 require 'message_source_accessor'
 require 'string_response'
 require 'application_setup'
 
 module SlimHelper
-  include ControllerUtils
+  include LocaleHelper
   include FormHelper
 
   import Java::JavaTime::LocalDateTime

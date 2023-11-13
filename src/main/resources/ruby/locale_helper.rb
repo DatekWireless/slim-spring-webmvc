@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module ControllerUtils
+module LocaleHelper
   def current_locale(request)
     locale = RequestContextUtils.getLocale(request)
     if locale.to_string.length > 2
