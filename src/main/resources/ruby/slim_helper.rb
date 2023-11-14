@@ -39,10 +39,14 @@ module SlimHelper
     '/views/index.slim', # La stå!
     '/views/error.slim',
   ]
+  SPRING_KEYS = [
+    :__spring_security_filterSecurityInterceptor_filterApplied,
+    :__spring_security_scpf_applied,
+    :__spring_security_session_mgmt_filter_applied,
+  ]
 
   PARTIAL_ATTR = 'no.datek.slim.partial'
-  # LOG = Java::OrgApacheLog4j::Logger.getLogger(name)
-  LOG = Logger.new($stdout)
+  LOG = Java::OrgApacheLog4j::Logger.get_logger('no.datek.slim')
   TEMPLATE_CACHE ||= Concurrent::Map.new
   CONTENT_CACHE ||= Concurrent::Map.new
   VIEW_SHAPES ||= Concurrent::Map.new
@@ -65,13 +69,14 @@ module SlimHelper
     context_values = RequestContext.default_context(locale, params, rendering_context, request)
     context_values.update Hash[variables.map{|k,v| [k.to_sym, v]}]
     context_values.update Hash[request.getAttributeNames.select { |a| a !~ /\./ && !context_values[a.to_sym] }.map { |a| [a.to_sym, request.getAttribute(a)] }]
-    context_values.update Hash[request.session.getAttributeNames.select { |a| a !~ /\./ && !context_values[a.to_sym] }.map { |a| [a.to_sym, request.session.getAttribute(a)] }]
+    # context_values.update Hash[request.session.getAttributeNames.select { |a| a !~ /\./ && !context_values[a.to_sym] }.map { |a| [a.to_sym, request.session.getAttribute(a)] }]
     context_values.update RequestContext.application_attributes(request)
-    view_shape = VIEW_SHAPES.fetch_or_store(context_values.keys) do |key|
-      LOG.info "Creating new view shape (#{rendering_context.url}): #{context_values.keys}"
-      Struct.new(*context_values.keys)
+    keys = (context_values.keys - SPRING_KEYS).sort
+    view_shape = VIEW_SHAPES.fetch_or_store(keys) do |key|
+      LOG.info "Creating new view shape (#{rendering_context.url}): #{keys}"
+      Struct.new(*keys)
     end
-    context = view_shape.new(*context_values.values)
+    context = view_shape.new(*context_values.fetch_values(*keys))
 
     rendering_partial = request.getAttribute(PARTIAL_ATTR)
 
@@ -259,7 +264,7 @@ module SlimHelper
 
   def patch_class_with_accessor(clazz)
     return if PATCHED_CLASSES.include?(clazz)
-    puts "Patching attribute getters for #{clazz.inspect}"
+    LOG.info "Patching attribute getters for #{clazz.inspect}"
     clazz.class_eval do
       def [](field_name)
         getAttribute(field_name.to_s)
