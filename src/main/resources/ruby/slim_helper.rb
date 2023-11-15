@@ -54,7 +54,7 @@ module SlimHelper
   DEFAULT_LAYOUT = "#{LAYOUT_TEMPLATE_PATH}/layout.slim"
   PATCHED_CLASSES = []
 
-  def render_slim(template, variables, rendering_context)
+  def render_slim(template, model_map, rendering_context)
     request = RequestContextHolder.request_attributes.request
     locale = current_locale(request)
 
@@ -67,13 +67,12 @@ module SlimHelper
     end
 
     context_values = RequestContext.default_context(locale, params, rendering_context, request)
-    context_values.update Hash[variables.map{|k,v| [k.to_sym, v]}]
+    context_values.update Hash[model_map.map{|k,v| [k.to_sym, v]}]
     context_values.update Hash[request.getAttributeNames.select { |a| a !~ /\./ && !context_values[a.to_sym] }.map { |a| [a.to_sym, request.getAttribute(a)] }]
-    # context_values.update Hash[request.session.getAttributeNames.select { |a| a !~ /\./ && !context_values[a.to_sym] }.map { |a| [a.to_sym, request.session.getAttribute(a)] }]
     context_values.update RequestContext.application_attributes(request)
     keys = (context_values.keys - SPRING_KEYS).sort
-    view_shape = VIEW_SHAPES.fetch_or_store(keys) do |key|
-      LOG.info "Creating new view shape (#{rendering_context.url}): #{keys}"
+    view_shape = VIEW_SHAPES.compute_if_absent(keys) do |key|
+      LOG.info "Creating new view shape (#{VIEW_SHAPES.size + 1}: #{rendering_context.url}): #{keys}"
       Struct.new(*keys)
     end
     context = view_shape.new(*context_values.fetch_values(*keys))
@@ -144,16 +143,16 @@ module SlimHelper
 
     raise "COULD NOT FIND VIEW #{view_path.inspect}" if view.nil?
 
-    map = self.to_h.update Hash[params.map { |k, v| [k, v] }]
+    model_map = { content_store: content_store }.update(params)
     request.setAttribute(PARTIAL_ATTR, true)
-    partial_response = StringResponse.new(request.character_encoding)
+    response = StringResponse.new(request.character_encoding)
 
     # render_start = Time.now
-    view.render(map, request, partial_response)
+    view.render(model_map, request, response)
 
     # LOG.info "Create template: #{render_start - load_start}, render: #{Time.now - render_start}, file: #{LAYOUT_TEMPLATE_PATH}"
 
-    partial_response.body
+    response.body
   rescue Exception => e # rubocop: disable Lint/RescueException
     LOG.error "Exception rendering partial template: #{view_path.inspect}"
     LOG.error "#{e.class}: #{e.message}"
@@ -218,13 +217,13 @@ module SlimHelper
   end
 
   def with_command_bean(command_name)
-    bs = binding_result(command_name)
-    bs.class.class_eval do
+    br = binding_result(command_name)
+    br.class.class_eval do
       def [](field_name)
         getFieldValue(field_name.to_s)
       end
     end
-    yield bs
+    yield br
   end
 
   def formatDateTime(date_time, format = 'yyyy-MM-dd HH:mm:ss', timeZoneId: TimeZoneHelper.current_time_zone(user))
