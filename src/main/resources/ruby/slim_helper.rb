@@ -39,11 +39,6 @@ module SlimHelper
     '/views/index.slim', # La stå!
     '/views/error.slim',
   ]
-  SPRING_KEYS = [
-    :__spring_security_filterSecurityInterceptor_filterApplied,
-    :__spring_security_scpf_applied,
-    :__spring_security_session_mgmt_filter_applied,
-  ]
 
   PARTIAL_ATTR = 'no.datek.slim.partial'
   LOG = Java::OrgApacheLog4j::Logger.get_logger('no.datek.slim')
@@ -68,20 +63,26 @@ module SlimHelper
 
     context_values = RequestContext.default_context(locale, params, rendering_context, request)
     context_values.update Hash[model_map.map{|k,v| [k.to_sym, v]}]
-    context_values.update Hash[request.getAttributeNames.select { |a| a !~ /\./ && !context_values[a.to_sym] }.map { |a| [a.to_sym, request.getAttribute(a)] }]
     context_values.update RequestContext.application_attributes(request)
-    keys = (context_values.keys - SPRING_KEYS).sort
+    keys = context_values.keys.sort
     view_shape = VIEW_SHAPES.compute_if_absent(keys) do |key|
-      LOG.info "Creating new view shape (#{VIEW_SHAPES.size + 1}: #{rendering_context.url}): #{keys}"
-      Struct.new(*keys)
+      LOG.info "Creating new view shape (#{'%3i' % (VIEW_SHAPES.size + 1)}) #{rendering_context.url}: #{keys}"
+      shape = Struct.new(*keys)
+      shape.class_eval do
+        def method_missing(method_name)
+          request.getAttribute(method_name.to_s)
+        end
+      end
+
+      shape
     end
     context = view_shape.new(*context_values.fetch_values(*keys))
 
     rendering_partial = request.getAttribute(PARTIAL_ATTR)
 
     # start = Time.now
-    templ = TEMPLATE_CACHE.fetch_or_store(rendering_context.url) do |key|
-      CONTENT_CACHE.fetch(template.hash) do |content_key|
+    templ = TEMPLATE_CACHE.compute_if_absent(rendering_context.url) do |key|
+      CONTENT_CACHE.compute_if_absent(template.hash) do |content_key|
         LOG.info "Load SLIM template #{rendering_context.url.inspect}"
         Slim::Template.new(rendering_context.url) { template }
       end
@@ -218,6 +219,7 @@ module SlimHelper
 
   def with_command_bean(command_name)
     br = binding_result(command_name)
+    raise "Binding result for #{command_name.inspect} is missing." if br.nil?
     br.class.class_eval do
       def [](field_name)
         getFieldValue(field_name.to_s)
@@ -261,22 +263,24 @@ module SlimHelper
     Kramdown::Document.new(text).to_html
   end
 
+  module AccessorPatch
+    def [](field_name)
+      getAttribute(field_name.to_s)
+    end
+
+    def []=(field_name, value)
+      setAttribute(field_name.to_s, value)
+    end
+
+    def method_missing(method_name)
+      getAttribute(method_name.to_s)
+    end
+  end
+
   def patch_class_with_accessor(clazz)
     return if PATCHED_CLASSES.include?(clazz)
     LOG.info "Patching attribute getters for #{clazz.inspect}"
-    clazz.class_eval do
-      def [](field_name)
-        getAttribute(field_name.to_s)
-      end
-
-      def []=(field_name, value)
-        setAttribute(field_name.to_s, value)
-      end
-
-      def method_missing(method_name)
-        getAttribute(method_name.to_s)
-      end
-    end
+    clazz.class_eval { include AccessorPatch }
     PATCHED_CLASSES << clazz
   end
 end
