@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 module RequestContext
+  import Java::OrgSpringframeworkSecurityCoreContext::SecurityContextHolder
+
   EMPTY_HASH = {}.freeze
 
   def self.default_context(locale, params, rendering_context, request)
@@ -9,7 +11,6 @@ module RequestContext
     message_source_accessor = MessageSourceAccessor.new(message_source, locale)
     {
       application_context: application_context,
-      content_store: {},
       ctx: request.contextPath,
       current_user: SecurityContextHolder.context&.authentication&.principal,
       locale: locale,
