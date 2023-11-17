@@ -1,7 +1,18 @@
-ViewContext = Struct.new(:app_view_context, :content_store, :default_context, :model_map, :request, keyword_init: true)
+# frozen_string_literal: true
+
+require 'uri'
+require 'slim_helper'
+require 'form_helper'
 
 class ViewContext
   include SlimHelper
+  include FormHelper
+
+  attr_reader :app_view_context, :content_store, :default_context, :model_map, :request
+
+  def initialize(**attributes)
+    attributes.each { |k, v| instance_variable_set("@#{k}", v) }
+  end
 
   def [](key)
     if model_map.key?(key)
@@ -14,8 +25,6 @@ class ViewContext
       default_context[key]
     elsif request.attribute_names.include?(key.to_s)
       request.getAttribute(key.to_s)
-    elsif members.include?(key.to_sym)
-      super
     else raise(NameError, "no key: #{key.inspect}")
     end
   end

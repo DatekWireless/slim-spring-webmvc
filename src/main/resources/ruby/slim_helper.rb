@@ -1,37 +1,12 @@
 # frozen_string_literal: true
 
-["uri:classloader:/ruby", "uri:classloader:/gems", "uri:classloader:/gems/concurrent-ruby",].each do |path|
-  $LOAD_PATH << path unless $LOAD_PATH.include?(path)
-end
-
-# Standard library
-require 'jruby'
-require 'bigdecimal'
-require 'date'
-require 'logger'
-require 'stringio'
-require 'uri'
-
-# Gems
-require 'concurrent/map'
 require 'kramdown'
-require 'slim'
-
-# Local source
-require 'request_context'
-require 'bigdecimal_ext'
-require 'form_helper'
-require 'message_source_accessor'
 require 'string_response'
-require 'core_ext'
-require 'application_setup'
 
 module SlimHelper
-  include FormHelper
-
   import Java::JavaTime::LocalDateTime
 
-  LOG = Java::OrgApacheLog4j::Logger.get_logger('no.datek.slim')
+  LOG = Java::OrgApacheCommonsLogging::LogFactory.getLog('no.datek.slim')
 
   # self in this context is the Struct with the context variables
   def render(view_path, params = {})
@@ -49,8 +24,8 @@ module SlimHelper
   rescue Exception => e # rubocop: disable Lint/RescueException
     LOG.error "Exception rendering partial template: #{view_path.inspect}"
     LOG.error "#{e.class}: #{e.message}"
+    LOG.error e.to_s
     LOG.info e.backtrace.join("\n")
-    LOG.error e
     raise
   end
 

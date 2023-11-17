@@ -1,6 +1,23 @@
-require_relative 'slim_helper'
+# frozen_string_literal: true
+
+["uri:classloader:/ruby", "uri:classloader:/gems", "uri:classloader:/gems/concurrent-ruby",].each do |path|
+  $LOAD_PATH << path unless $LOAD_PATH.include?(path)
+end
+
+# Standard library
+require 'jruby'
+
+# Gems
+require 'concurrent/map'
+require 'slim'
+
+# Local source
+require 'bigdecimal_ext'
+require_relative 'core_ext'
 require_relative 'view_context'
-require 'locale_helper'
+require_relative 'locale_helper'
+require_relative 'request_context'
+require 'application_setup'
 
 module SlimRenderer
   include LocaleHelper
@@ -11,7 +28,7 @@ module SlimRenderer
     '/views/index.slim', # La stå!
     '/views/error.slim',
   ]
-  LOG = Java::OrgApacheLog4j::Logger.get_logger('no.datek.slim')
+  LOG = Java::OrgApacheCommonsLogging::LogFactory.getLog('no.datek.slim')
   TEMPLATE_CACHE ||= Concurrent::Map.new
   CONTENT_CACHE ||= Concurrent::Map.new
   PARTIAL_ATTR = 'no.datek.slim.partial'
@@ -106,3 +123,7 @@ module SlimRenderer
 end
 
 include SlimRenderer
+
+if Java::JavaLang::System.getProperty("spring.profiles.active").include?('development')
+  require 'source_reloader'
+end

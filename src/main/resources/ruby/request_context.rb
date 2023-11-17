@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'message_source_accessor'
+
 module RequestContext
   import Java::OrgSpringframeworkSecurityCoreContext::SecurityContextHolder
 
