@@ -124,6 +124,6 @@ end
 
 include SlimRenderer
 
-if Java::JavaLang::System.getProperty("spring.profiles.active")&.include?('development')
+if (Java::JavaLang::System.getProperty("spring.profiles.active") || Java::JavaLang::System.getenv("SPRING_PROFILES_ACTIVE"))&.include?('development')
   require 'source_reloader'
 end
