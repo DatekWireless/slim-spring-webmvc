@@ -29,10 +29,16 @@ class ViewContext
     end
   end
 
-  def method_missing(method_name, *args, **opts)
+  def method_missing(method_name, ...)
     self[method_name]
   rescue NameError
     super
+  end
+
+  def respond_to_missing?(method_name, include_all = false)
+    model_map.key?(method_name) || model_map.key?(method_name.to_s) ||
+      app_view_context.key?(method_name) || default_context.key?(method_name) ||
+      request.attribute_names.include?(method_name.to_s)
   end
 
   def present?(arg)
