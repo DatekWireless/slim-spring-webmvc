@@ -38,14 +38,11 @@ module SlimRenderer
   def render_slim(template, model_map, rendering_context)
     request = RequestContextHolder.request_attributes.request
     locale = current_locale(request)
-
-    patch_class_with_accessor(request.class)
-    patch_class_with_accessor(request.session.class)
-
     params = request.parameterMap
-    def params.[](key)
-      super(key.to_s)
-    end
+
+    patch_class_with_module(request.class, AccessorPatch)
+    patch_class_with_module(request.session.class, AccessorPatch)
+    patch_class_with_module(params.class, StringAccessorPatch)
 
     app_view_context = RequestContext.application_attributes(request)
     default_context = RequestContext.default_context(locale, params, rendering_context, request)
@@ -115,10 +112,16 @@ module SlimRenderer
     end
   end
 
-  def patch_class_with_accessor(clazz)
-    return if clazz.ancestors.include?(AccessorPatch)
-    LOG.info "Patching attribute getters for #{clazz.inspect}"
-    clazz.include AccessorPatch
+  module StringAccessorPatch
+    def [](key)
+      super(key.to_s)
+    end
+  end
+
+  def patch_class_with_module(clazz, patch)
+    return if clazz.ancestors.include?(patch)
+    LOG.info "Patching class #{clazz.inspect} with module #{patch}"
+    clazz.include patch
   end
 end
 

@@ -76,10 +76,7 @@ module SlimHelper
     key = "org.springframework.validation.BindingResult.#{command_name}"
     br = model_map.get(key) || request.getAttribute(key) || self[key]
     raise "Binding result for #{command_name.inspect} is missing." if br.nil?
-    unless br.class.ancestors.include?(BindingResultPatch)
-      LOG.info "Patching attribute getters for #{br.class.inspect}"
-      br.class.include(BindingResultPatch)
-    end
+    patch_class_with_module(br.class, BindingResultPatch)
     br
   end
 

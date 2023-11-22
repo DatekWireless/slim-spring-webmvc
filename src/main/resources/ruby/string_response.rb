@@ -3,6 +3,8 @@
 require 'stringio'
 
 class StringResponse
+  include javax.servlet.http.HttpServletResponse
+
   attr_accessor :character_encoding, :content_type
   attr_reader :writer
 
