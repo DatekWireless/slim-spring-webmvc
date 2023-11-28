@@ -114,7 +114,7 @@ module SlimRenderer
 
   module StringAccessorPatch
     def [](key)
-      super(key.to_s)
+      super(key) || super(key.to_s)
     end
   end
 
