@@ -253,6 +253,7 @@ module FormHelper
     disabled = opts.delete(:disabled)
     multiple = opts.delete(:multiple)
     ondblclick = opts.delete(:ondblclick)
+    selected = opts.delete(:selected)
 
     html = +''
     html << '<span>' if appendix
@@ -267,16 +268,10 @@ module FormHelper
     end
     html << ">"
 
-    field_value = object_field_value(object, field_name)
+    field_value = selected || object_field_value(object, field_name)
 
-    if prompt
-      html << %{<option value="">}
-      if field_value.empty?
-        html << %{#{TrueClass === prompt ? '' : CGI.escapeHTML(prompt.to_s)}</option>}
-      else
-        html << "(#{message['text.none']})"
-      end
-      html << "</option>"
+    if field_value.empty? && prompt
+      html << %{<option value="">#{TrueClass === prompt ? '' : CGI.escapeHTML(prompt.to_s)}</option>}
     end
 
     selected_values = multiple ? field_value.split(',') : [field_value]
