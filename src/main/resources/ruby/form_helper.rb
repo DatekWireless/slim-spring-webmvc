@@ -271,7 +271,7 @@ module FormHelper
     field_value = selected || object_field_value(object, field_name)
 
     if field_value.empty? && prompt
-      html << %{<option value="">#{TrueClass === prompt ? '' : CGI.escapeHTML(prompt.to_s)}</option>}
+      html << %{<option value="">#{TrueClass === prompt ? "(#{message['text.none']})" : CGI.escapeHTML(prompt.to_s)}</option>}
     end
 
     selected_values = multiple ? field_value.split(',') : [field_value]
