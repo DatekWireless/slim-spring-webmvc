@@ -3,6 +3,8 @@
 require 'cgi/escape'
 
 module FormHelper
+  WRAPPER_CLASS = 'mb-2 mb-lg-3'
+
   def checkbox(object, field_name, **opts)
     hide_label = opts.delete(:hide_label) || opts.delete(:no_label)
     label_key = label_key_opt(opts, field_name)
@@ -50,7 +52,7 @@ module FormHelper
 
   def bootstrap_checkbox(object, field_name, **opts)
     group_label = opts.key?(:group_label) ? opts.delete(:group_label) : '&nbsp;'
-    wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : 'mb-3'
+    wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : WRAPPER_CLASS
     control_class = "form-check-input #{opts.delete(:control_class)}".strip
     html = +<<~HTML
       <div class="form-check #{'py-2' if group_label && wrapper_class}">
@@ -161,7 +163,7 @@ module FormHelper
     label_class = opts.delete(:label_class) || 'form-label'
     label_style = opts.delete(:label_style)
     append = opts.delete(:append)
-    wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : 'mb-3'
+    wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : WRAPPER_CLASS
     required = opts[:required]
 
     if hide_label
@@ -309,7 +311,7 @@ module FormHelper
     hide_label_suffix = opts.key?(:hide_label_suffix) ? opts.delete(:hide_label_suffix) : true
     label_suffix = hide_label_suffix ? nil : ':'
     label = opts.delete(:label) || "#{message[label_key]}#{label_suffix}"
-    wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : 'mb-3'
+    wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : WRAPPER_CLASS
     append = opts.delete(:append)
 
     if hide_label
@@ -342,7 +344,7 @@ module FormHelper
     label_key = label_key_opt(opts, field_name)
     id_name = opts.delete(:id) || field_name
     classes = opts.delete(:class)
-    wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : 'mb-3'
+    wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : WRAPPER_CLASS
     wrapper_classes = opts.delete(:wrapper_class)
 
     if hide_label
@@ -391,7 +393,7 @@ module FormHelper
     min_date = opts.delete(:min_date)
     invalid_input = opts.delete(:invalid_input)
     value = opts.delete(:value)
-    wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : 'mb-3'
+    wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : WRAPPER_CLASS
 
     if hide_label
       html = +""
@@ -462,7 +464,7 @@ module FormHelper
     label_class = opts.delete(:label_class) || 'form-label'
     label_style = opts.delete(:label_style)
     label_key = label_key_opt(opts, field_name)
-    wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : 'mb-3'
+    wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : WRAPPER_CLASS
 
     if hide_label
       html = +""
