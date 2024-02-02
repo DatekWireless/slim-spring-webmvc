@@ -184,9 +184,12 @@ module FormHelper
       end
       html << '</div>'
     end
-    <<~HTML
-      <div class="#{wrapper_class}">#{html}</div>
-    HTML
+    if wrapper_class.present?
+      html = <<~HTML
+        <div class="#{wrapper_class}">#{html}</div>
+      HTML
+    end
+    html
   end
 
   def hidden_input(object, field_name, **opts)
@@ -323,16 +326,19 @@ module FormHelper
     html << %{<div class="input-group flex-nowrap" >} if append
     html << select_input(object, field_name, option_map, class: classes, no_break: true, **opts, &block)
     if append
-      if append.include?('btn')
+      if append.include?('btn') || append.include?('input')
         html << append
       else
         html << %{<span class="input-group-text">#{append}</span>}
       end
       html << '</div>'
     end
-    <<~HTML
-      <div class="#{wrapper_class}">#{html}</div>
-    HTML
+    if wrapper_class.present?
+      html = <<~HTML
+        <div class="#{wrapper_class}">#{html}</div>
+      HTML
+    end
+    html
   end
 
   # Will only work with Bootstrap
