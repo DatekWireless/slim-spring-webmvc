@@ -141,7 +141,7 @@ module FormHelper
     classes = +"form-control"
 
     classes << ' ' << custom_classes if custom_classes
-    classes << ' is-invalid' if object&.hasFieldErrors(field_name.to_s)
+    classes << ' is-invalid' if object.try(:hasFieldErrors, field_name.to_s)
     classes
   end
 
@@ -149,7 +149,7 @@ module FormHelper
     classes = +"form-select"
 
     classes << ' ' << custom_classes if custom_classes
-    classes << ' is-invalid' if object&.hasFieldErrors(field_name.to_s)
+    classes << ' is-invalid' if object.try(:hasFieldErrors, field_name.to_s)
     classes
   end
 
@@ -233,7 +233,7 @@ module FormHelper
       html << %{ #{key}="#{value}"}
     end
     html << ">"
-    html << object[field_name]
+    html << (object.try(field_name) || object.try(:[], field_name)).to_s
     html << "</textarea>"
     html << "<label for='#{id_name}' style='width:auto'>#{appendix}</label></span>" if appendix
     html << "<br/>" unless no_break
