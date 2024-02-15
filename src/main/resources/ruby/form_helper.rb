@@ -502,7 +502,17 @@ module FormHelper
 
   private
 
+  MESSAGE_PREFIXES = ['field', 'label', nil, 'text'].freeze
+  ID_BASE_PATTERN = /^.*(?=(?:I|_i)d$)/.freeze
+
   def label_key_opt(opts, field_name)
-    opts.delete(:label_key) || ["field.#{field_name}", "label.#{field_name}", field_name, "text.#{field_name}"]
+    key = opts.delete(:label_key)
+    if key.nil?
+      key = MESSAGE_PREFIXES.map{|prefix| "#{"#{prefix}." if prefix}#{field_name}"}
+      if (base_name = field_name[ID_BASE_PATTERN])
+        key += MESSAGE_PREFIXES.map{|prefix| "#{"#{prefix}." if prefix}#{base_name}"}
+      end
+    end
+    key
   end
 end
