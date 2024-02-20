@@ -38,6 +38,7 @@ module SlimRenderer
   def render_slim(template, model_map, rendering_context)
     request = RequestContextHolder.request_attributes.request
     locale = current_locale(request)
+    Thread.current[:locale] = locale
     params = request.parameterMap
 
     patch_class_with_module(request.class, AccessorPatch)

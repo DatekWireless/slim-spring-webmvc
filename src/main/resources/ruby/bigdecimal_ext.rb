@@ -4,7 +4,10 @@ require 'bigdecimal'
 
 class Java::JavaMath::BigDecimal
   def to_bd
-    # BigDecimal(unscaledValue, precision)
     BigDecimal(toString)
+  end
+
+  def to_s
+    java.text.NumberFormat.getInstance(Thread.current[:locale]).format(self)
   end
 end
