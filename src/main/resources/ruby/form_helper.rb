@@ -273,9 +273,9 @@ module FormHelper
     end
     html << ">"
 
-    field_value = selected || object_field_value(object, field_name)
+    field_value = selected&.to_s&.strip || object_field_value(object, field_name)
 
-    if field_value.empty? && prompt
+    if field_value.blank? && prompt
       html << %{<option value="">#{TrueClass === prompt ? "(#{message['text.none']})" : CGI.escapeHTML(prompt.to_s)}</option>}
     end
 
