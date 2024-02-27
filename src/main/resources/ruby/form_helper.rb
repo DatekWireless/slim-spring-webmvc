@@ -365,7 +365,7 @@ module FormHelper
     end
     html << '>'
 
-    html << %{<input type="text" name="#{field_name}" class="form-control datetime #{classes}" id="#{id_name}" value="#{object_field_value(object, field_name)}" style="min-width: 10.1rem;" }
+    html << %{<input type="text" name="#{field_name}" class="form-control datetime #{classes}" id="#{id_name}" value="#{object_field_value(object, field_name)}"}
     opts.each do |key, value|
       html << %{ #{key}="#{value}"}
     end
@@ -384,7 +384,7 @@ module FormHelper
   end
 
   def date_input(object, field_name, **opts)
-    text_input object, field_name, **{ label_class: "date-label", size: 10, style: 'min-width:7rem' }.merge(opts)
+    text_input object, field_name, **{ label_class: "date-label", size: 10}.merge(opts)
   end
 
   def bootstrap_date_input(object, field_name, **opts)
