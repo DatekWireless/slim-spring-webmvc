@@ -2,9 +2,20 @@
 
 require 'bigdecimal'
 
-class BigDecimal
-  alias :to_fs :to_s
+module BigDecimalExt
+  def to_s(format = nil)
+    if format
+      return super(format)
+    end
+    java.text.NumberFormat.getInstance(Thread.current[:locale]).format(self)
+  end
+
+  def to_fs(format = nil)
+    to_s(format || 'F')
+  end
 end
+BigDecimal.prepend BigDecimalExt
+Float.prepend BigDecimalExt
 
 class Java::JavaMath::BigDecimal
   def to_bd
