@@ -258,18 +258,21 @@ module FormHelper
     id_name = opts.delete(:id) || field_name
     no_break = opts.delete(:no_break) || opts.delete(:inline)
     prompt = opts.delete(:prompt)
+    include_blank = opts.delete(:include_blank)
     appendix = opts.delete(:append)
     disabled = opts.delete(:disabled)
     multiple = opts.delete(:multiple)
     ondblclick = opts.delete(:ondblclick)
     selected = opts.delete(:selected)
 
+    uses_select2 = opts[:class] =~ /chosen-select|select2/
+
     html = +''
     html << '<span>' if appendix
 
     html << %{<select name="#{field_name}" id="#{id_name}" #{:disabled if disabled} #{:multiple if multiple} }
-    if prompt
-      html << %{ data-placeholder='#{TrueClass === prompt ? '' : CGI.escapeHTML(prompt.to_s)}'}
+    if uses_select2 && prompt
+      html << %{ data-placeholder='#{TrueClass === prompt ? message['pleaseSelect'] : CGI.escapeHTML(prompt.to_s)}'}
       html << %{ data-allow-clear='true'}
     end
     opts.each do |key, value|
@@ -280,7 +283,9 @@ module FormHelper
     field_value = selected&.to_s&.strip || object_field_value(object, field_name)
 
     if field_value.blank? && prompt
-      html << %{<option value="">#{TrueClass === prompt ? "(#{message['text.none']})" : CGI.escapeHTML(prompt.to_s)}</option>}
+      html << %{<option value="">#{TrueClass === prompt ? message['pleaseSelect'] : CGI.escapeHTML(prompt.to_s)}</option>}
+    elsif include_blank
+      html << %{<option value="">#{TrueClass === include_blank ? "" : CGI.escapeHTML(include_blank.to_s)}</option>}
     end
 
     selected_values = multiple ? field_value.split(',') : [field_value]
