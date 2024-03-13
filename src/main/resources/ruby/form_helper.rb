@@ -20,12 +20,16 @@ module FormHelper
     disabled = opts.delete(:disabled)
 
     checked =
-      if object[field_name].nil?
-        false
-      elsif field_name =~ /\[.*\]/ && value
-        object[field_name].split(',').include?(value.to_s)
+      if opts.key?(:checked)
+        opts.delete(:checked)
       else
-        object[field_name] == "true"
+        if object&.[](field_name).nil?
+          false
+        elsif field_name =~ /\[.*\]/ && value
+          object[field_name].split(',').include?(value.to_s)
+        else
+          object[field_name] == "true"
+        end
       end
     html = +''
     unless no_hidden
