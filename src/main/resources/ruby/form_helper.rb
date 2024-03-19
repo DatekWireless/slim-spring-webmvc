@@ -326,7 +326,7 @@ module FormHelper
     wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : WRAPPER_CLASS
     append = opts.delete(:append)
 
-    if hide_label
+    if hide_label || wrapper_class.blank?
       html = +""
     else
       html = +%{<label for="#{opts[:id]}" class="#{label_class}" style="#{label_style}">#{CGI.escapeHTML(label)}</label>}
@@ -335,10 +335,12 @@ module FormHelper
     html << %{<div class="input-group flex-nowrap" >} if append
     html << select_input(object, field_name, option_map, class: classes, no_break: true, **opts, &block)
     if append
-      if append.include?('btn') || append.include?('input')
-        html << append
-      else
-        html << %{<span class="input-group-text">#{append}</span>}
+      [*append].each do |addon|
+        if addon.start_with?('<')
+          html << addon
+        else
+          html << %{<span class="input-group-text">#{addon}</span>}
+        end
       end
       html << '</div>'
     end
