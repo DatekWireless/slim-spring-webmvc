@@ -335,7 +335,7 @@ module FormHelper
     html << %{<div class="input-group flex-nowrap" >} if append
     html << select_input(object, field_name, option_map, class: classes, no_break: true, **opts, &block)
     if append
-      [*append].each do |addon|
+      [*append].compact.each do |addon|
         if addon.start_with?('<')
           html << addon
         else
