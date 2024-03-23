@@ -181,10 +181,12 @@ module FormHelper
     html << %{<div class="input-group flex-nowrap" >} if append
     html << text_input(object, field_name, class: classes, no_break: true, **opts)
     if append
-      if append.include?('btn')
-        html << append
-      else
-        html << %{<span class="input-group-text">#{append}</span>}
+      [*append].compact.each do |addon|
+        if addon.start_with?('<')
+          html << addon
+        else
+          html << %{<span class="input-group-text">#{addon}</span>}
+        end
       end
       html << '</div>'
     end
