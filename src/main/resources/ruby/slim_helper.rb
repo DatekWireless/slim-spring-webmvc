@@ -91,12 +91,12 @@ module SlimHelper
 
     local_date_time =
       if !(LocalDateTime === date_time)
-        DateUtils.toJava8LocalDateTime(date_time)
+        DateUtils.toLocalDateTime(date_time)
       else
         date_time
       end
 
-    DateUtils.formatJava8DateTime(local_date_time, format, timeZoneId)
+    DateUtils.formatLocalDateTime(local_date_time, format, timeZoneId)
   end
 
   def formatDate(date, format = '%d.%m.%Y')
