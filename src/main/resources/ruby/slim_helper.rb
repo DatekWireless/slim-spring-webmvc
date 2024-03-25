@@ -29,6 +29,10 @@ module SlimHelper
     raise
   end
 
+  def asset_path(path)
+    Java::NoDatekSlim::AssetStore.getHashedPath(path)
+  end
+
   def content_for(key, &block)
     if block
       if (new_content = capture(&block))
