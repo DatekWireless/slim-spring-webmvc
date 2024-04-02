@@ -2,8 +2,12 @@
 
 require 'kramdown'
 require 'string_response'
+require_relative 'class_patcher'
+require_relative 'locale_helper'
 
 module SlimHelper
+  include LocaleHelper
+  include ClassPatcher
   import Java::JavaTime::LocalDateTime
 
   LOG = Java::OrgApacheCommonsLogging::LogFactory.getLog('no.datek.slim')
@@ -17,7 +21,7 @@ module SlimHelper
     raise "COULD NOT FIND VIEW #{view_path.inspect}" if view.nil?
 
     model_map = { content_store: content_store }.update(params)
-    request.setAttribute(PARTIAL_ATTR, true)
+    request.setAttribute(SlimRenderer::PARTIAL_ATTR, true)
     response = StringResponse.new(request.character_encoding)
     view.render(model_map, request, response)
     response.body

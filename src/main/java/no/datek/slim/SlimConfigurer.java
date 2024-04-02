@@ -22,7 +22,8 @@ public class SlimConfigurer implements WebMvcConfigurer {
         ScriptTemplateConfigurer configurer = new ScriptTemplateConfigurer();
         configurer.setEngineName("jruby");
         configurer.setScripts("ruby/load_slim.rb");
-        configurer.setRenderFunction("render_slim");
+        configurer.setRenderObject("SlimRenderer");
+        configurer.setRenderFunction("render");
         return configurer;
     }
 }

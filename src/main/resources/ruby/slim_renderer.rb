@@ -13,14 +13,18 @@ require 'slim'
 
 # Local source
 require 'bigdecimal_ext'
+require_relative 'class_patcher'
 require_relative 'core_ext'
+require_relative 'log'
 require_relative 'view_context'
 require_relative 'locale_helper'
 require_relative 'request_context'
 require 'application_setup'
 
-module SlimRenderer
-  include LocaleHelper
+class SlimRenderer
+  extend LocaleHelper
+  extend ClassPatcher
+  include Log
 
   import Java::OrgSpringframeworkWebContextRequest::RequestContextHolder
 
@@ -28,14 +32,13 @@ module SlimRenderer
     '/views/index.slim', # La stå!
     '/views/error.slim',
   ]
-  LOG = Java::OrgApacheCommonsLogging::LogFactory.getLog('no.datek.slim')
   TEMPLATE_CACHE ||= Concurrent::Map.new
   CONTENT_CACHE ||= Concurrent::Map.new
   PARTIAL_ATTR = 'no.datek.slim.partial'
   LAYOUT_TEMPLATE_PATH = "/views/layouts"
   DEFAULT_LAYOUT = "#{LAYOUT_TEMPLATE_PATH}/layout.slim"
 
-  def render_slim(template, model_map, rendering_context)
+  def self.render(template, model_map, rendering_context)
     request = RequestContextHolder.request_attributes.request
     locale = current_locale(request)
     Thread.current[:locale] = locale
@@ -118,15 +121,7 @@ module SlimRenderer
       super(key) || super(key.to_s)
     end
   end
-
-  def patch_class_with_module(clazz, patch)
-    return if clazz.ancestors.include?(patch)
-    LOG.info "Patching class #{clazz.inspect} with module #{patch}"
-    clazz.prepend patch
-  end
 end
-
-include SlimRenderer
 
 if (Java::JavaLang::System.getProperty("spring.profiles.active") || Java::JavaLang::System.getenv("SPRING_PROFILES_ACTIVE"))&.include?('development')
   require 'source_reloader'
