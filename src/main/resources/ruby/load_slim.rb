@@ -7,8 +7,10 @@ begin
 rescue Exception => e
   Java::OrgApacheCommonsLogging::LogFactory.getLog('no.datek.slim').error(e.to_s)
 
-  def render_slim(template, model_map, rendering_context)
-    "<h1>Whoops!</h1><p>Failed to load SLIM template framework.</p>"
+  module SlimRenderer
+    def self.render(template, model_map, rendering_context)
+      "<h1>Whoops!</h1><p>Failed to load SLIM template framework.</p>"
+    end
   end
 end
 

@@ -107,7 +107,7 @@ module SlimHelper
     DateUtils.formatLocalDateTime(local_date_time, format, timeZoneId)
   end
 
-  def formatDate(date, format = '%d.%m.%Y')
+  def formatDate(date, format = '%Y-%m-%d')
     if date.nil?
       return ''
     end

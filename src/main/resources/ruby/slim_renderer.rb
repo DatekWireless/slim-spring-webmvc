@@ -21,7 +21,7 @@ require_relative 'locale_helper'
 require_relative 'request_context'
 require 'application_setup'
 
-class SlimRenderer
+module SlimRenderer
   extend LocaleHelper
   extend ClassPatcher
   include Log
