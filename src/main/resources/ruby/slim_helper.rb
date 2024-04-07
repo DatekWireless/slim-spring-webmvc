@@ -8,9 +8,8 @@ require_relative 'locale_helper'
 module SlimHelper
   include LocaleHelper
   include ClassPatcher
+  include Log
   import Java::JavaTime::LocalDateTime
-
-  LOG = Java::OrgApacheCommonsLogging::LogFactory.getLog('no.datek.slim')
 
   # self in this context is the Struct with the context variables
   def render(view_path, params = {})

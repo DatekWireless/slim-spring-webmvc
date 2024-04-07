@@ -31,7 +31,7 @@ module SlimRenderer
   NO_LAYOUT = [
     '/views/index.slim', # La stå!
     '/views/error.slim',
-  ]
+  ].freeze
   TEMPLATE_CACHE ||= Concurrent::Map.new
   CONTENT_CACHE ||= Concurrent::Map.new
   PARTIAL_ATTR = 'no.datek.slim.partial'
