@@ -25,10 +25,12 @@ module SlimHelper
     view.render(model_map, request, response)
     response.body
   rescue Exception => e # rubocop: disable Lint/RescueException
-    LOG.error "Exception rendering partial template: #{view_path.inspect}"
-    LOG.error "#{e.class}: #{e.message}"
-    LOG.error e.to_s
-    LOG.info e.backtrace.join("\n")
+    if SlimRenderer.log_rendering_errors
+      LOG.error "Exception rendering partial template: #{view_path.inspect}"
+      LOG.error "#{e.class}: #{e.message}"
+      LOG.error e.to_s
+      LOG.info e.backtrace.join("\n")
+    end
     raise
   end
 

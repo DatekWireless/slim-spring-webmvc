@@ -19,7 +19,6 @@ require_relative 'log'
 require_relative 'view_context'
 require_relative 'locale_helper'
 require_relative 'request_context'
-require 'application_setup'
 
 module SlimRenderer
   extend LocaleHelper
@@ -37,6 +36,16 @@ module SlimRenderer
   PARTIAL_ATTR = 'no.datek.slim.partial'
   LAYOUT_TEMPLATE_PATH = "/views/layouts"
   DEFAULT_LAYOUT = "#{LAYOUT_TEMPLATE_PATH}/layout.slim"
+
+  @@log_rendering_errors = true
+
+  def self.log_rendering_errors
+    @@log_rendering_errors
+  end
+
+  def self.log_rendering_errors=(value)
+    @@log_rendering_errors = value
+  end
 
   def self.render(template, model_map, rendering_context)
     request = RequestContextHolder.request_attributes.request
@@ -98,7 +107,9 @@ module SlimRenderer
 
       #{e.backtrace.join("\n")}
     HTML
-    LOG.error message
+    if log_rendering_errors
+      LOG.error message
+    end
     "<h1>Whoops!</h1><pre>#{CGI.escapeHTML(message)}</pre>"
   end
 
@@ -126,3 +137,5 @@ end
 if (Java::JavaLang::System.getProperty("spring.profiles.active") || Java::JavaLang::System.getenv("SPRING_PROFILES_ACTIVE"))&.include?('development')
   require 'source_reloader'
 end
+
+require 'application_setup'
