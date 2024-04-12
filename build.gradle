@@ -7,8 +7,8 @@ plugins {
 }
 
 group 'no.datek'
-version '0.18.3'
-final String JRUBY_VERSION = '9.4.5.0';
+version '0.19.0'
+final String JRUBY_VERSION = '9.4.6.0';
 
 repositories {
     mavenLocal()
@@ -17,7 +17,8 @@ repositories {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web:2.7.6'
-//    implementation "org.jruby:jruby:$JRUBY_VERSION"
+    implementation 'javax.servlet:javax.servlet-api:3.1.0'
+    implementation "org.jruby:jruby:$JRUBY_VERSION"
 }
 
 java {

@@ -138,4 +138,8 @@ if (Java::JavaLang::System.getProperty("spring.profiles.active") || Java::JavaLa
   require 'source_reloader'
 end
 
-require 'application_setup'
+begin
+  require 'application_setup'
+rescue LoadError
+  puts "Application setup file `application_setup.rb` is missing."
+end

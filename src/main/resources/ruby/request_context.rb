@@ -3,7 +3,11 @@
 require 'message_source_accessor'
 
 module RequestContext
-  import Java::OrgSpringframeworkSecurityCoreContext::SecurityContextHolder
+  begin
+    import Java::OrgSpringframeworkSecurityCoreContext::SecurityContextHolder
+  rescue NameError, LoadError
+    # Running without security.
+  end
 
   EMPTY_HASH = {}.freeze
 
@@ -11,10 +15,9 @@ module RequestContext
     application_context = rendering_context.application_context
     message_source = application_context.get_bean(org.springframework.context.MessageSource.java_class)
     message_source_accessor = MessageSourceAccessor.new(message_source, locale)
-    {
+    context = {
       application_context: application_context,
       ctx: request.contextPath,
-      current_user: SecurityContextHolder.context&.authentication&.principal,
       locale: locale,
       message: message_source_accessor,
       messages: message_source,
@@ -24,8 +27,14 @@ module RequestContext
       params: params,
       request: request,
       session: request.getSession(),
-      user: request.session.getAttribute("user") || SecurityContextHolder.context&.authentication&.principal,
     }
+    if defined?(SecurityContextHolder)
+      context.merge({
+        current_user: SecurityContextHolder.context&.authentication&.principal,
+        user: request.session.getAttribute("user") || SecurityContextHolder.context&.authentication&.principal,
+      })
+    end
+    context
   end
 
   # Override this method to set your application specific request attributes.

@@ -2,8 +2,12 @@
 
 module LocaleHelper
   import Java::OrgSpringframeworkWebServletSupport::RequestContextUtils
-  import Java::OrgSpringframeworkSecurityCoreContext::SecurityContextHolder
   import Java::JavaUtil::Locale
+  begin
+    import Java::OrgSpringframeworkSecurityCoreContext::SecurityContextHolder
+  rescue NameError, LoadError
+    # Running without security.
+  end
 
   SUPPORTED_LOCALES = {
     "nb" => "text.language.norwegian",
@@ -27,13 +31,15 @@ module LocaleHelper
     if local_name
       return Locale.new(locale.language)
     end
-    user = SecurityContextHolder.context&.authentication&.principal
-    customer = user.try(:current_customer)
-    if customer
-      return customer.locale
-    end
-    if SystemUtils.isUK
-      return Locale::UK
+    if defined?(SecurityContextHolder)
+      user = SecurityContextHolder.context&.authentication&.principal
+      customer = user.try(:current_customer)
+      if customer
+        return customer.locale
+      end
+      if SystemUtils.isUK
+        return Locale::UK
+      end
     end
     Locale.new("nb")
   end
