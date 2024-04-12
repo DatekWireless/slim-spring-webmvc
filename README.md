@@ -9,6 +9,8 @@ https://github.com/DatekWireless/slim-spring-webmvc
 
 ## Usage
 
+There is a reference application at https://github.com/DatekWireless/jruby-8178 .
+
 ### build.gradle
 
 ```groovy
@@ -16,14 +18,9 @@ plugins {
   id "com.github.jruby-gradle.base" version "2.1.0-alpha.2"
 }
 
-final String JRUBY_VERSION = '9.4.6.0'
-
 dependencies {
   implementation 'no.datek:slim-spring-webmvc:0.+'
-  implementation "org.jruby:jruby:$JRUBY_VERSION"
 }
-
-jruby { jrubyVersion JRUBY_VERSION }
 ```
 
 ### Config/Application
