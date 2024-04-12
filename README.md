@@ -9,7 +9,7 @@ https://github.com/DatekWireless/slim-spring-webmvc
 
 ## Usage
 
-build.gradle:
+### build.gradle
 
 ```groovy
 plugins {
@@ -24,6 +24,12 @@ dependencies {
 }
 
 jruby { jrubyVersion JRUBY_VERSION }
+```
+
+### Config/Application
+
+```java
+@ComponentScan("no.datek.slim")
 ```
 
 ## Release to Maven Central
