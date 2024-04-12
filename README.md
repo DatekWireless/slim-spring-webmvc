@@ -7,6 +7,25 @@ https://github.com/DatekWireless/slim-spring-webmvc
 * https://search.maven.org/
 * https://search.maven.org/search?q=slim-spring-webmvc
 
+## Usage
+
+build.gradle:
+
+```groovy
+plugins {
+  id "com.github.jruby-gradle.base" version "2.1.0-alpha.2"
+}
+
+final String JRUBY_VERSION = '9.4.6.0'
+
+dependencies {
+  implementation 'no.datek:slim-spring-webmvc:0.+'
+  implementation "org.jruby:jruby:$JRUBY_VERSION"
+}
+
+jruby { jrubyVersion JRUBY_VERSION }
+```
+
 ## Release to Maven Central
 
 * Bump the version in build.gradle and commit and push.
