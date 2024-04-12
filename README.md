@@ -9,7 +9,7 @@ https://github.com/DatekWireless/slim-spring-webmvc
 
 ## Usage
 
-There is a reference application at https://github.com/DatekWireless/jruby-8178 .
+There is a reference application at https://github.com/DatekWireless/slim-spring-mvc-sample .
 
 ### build.gradle
 
