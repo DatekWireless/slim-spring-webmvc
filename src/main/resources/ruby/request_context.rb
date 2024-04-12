@@ -29,7 +29,7 @@ module RequestContext
       session: request.getSession(),
     }
     if defined?(SecurityContextHolder)
-      context.merge({
+      context.merge!({
         current_user: SecurityContextHolder.context&.authentication&.principal,
         user: request.session.getAttribute("user") || SecurityContextHolder.context&.authentication&.principal,
       })

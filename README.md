@@ -14,10 +14,6 @@ There is a reference application at https://github.com/DatekWireless/slim-spring
 ### build.gradle
 
 ```groovy
-plugins {
-  id "com.github.jruby-gradle.base" version "2.1.0-alpha.2"
-}
-
 dependencies {
   implementation 'no.datek:slim-spring-webmvc:0.+'
 }
