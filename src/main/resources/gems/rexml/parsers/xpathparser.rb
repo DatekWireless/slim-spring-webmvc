@@ -1,4 +1,5 @@
 # frozen_string_literal: false
+
 require_relative '../namespace'
 require_relative '../xmltokens'
 
@@ -38,108 +39,143 @@ module REXML
         parsed
       end
 
-      def abbreviate( path )
-        path = path.kind_of?(String) ? parse( path ) : path
-        string = ""
-        document = false
-        while path.size > 0
-          op = path.shift
+      def abbreviate(path_or_parsed)
+        if path_or_parsed.kind_of?(String)
+          parsed = parse(path_or_parsed)
+        else
+          parsed = path_or_parsed
+        end
+        components = []
+        component = nil
+        while parsed.size > 0
+          op = parsed.shift
           case op
           when :node
+            component << "node()"
           when :attribute
-            string << "/" if string.size > 0
-            string << "@"
+            component = "@"
+            components << component
           when :child
-            string << "/" if string.size > 0
+            component = ""
+            components << component
           when :descendant_or_self
-            string << "/"
+            next_op = parsed[0]
+            if next_op == :node
+              parsed.shift
+              component = ""
+              components << component
+            else
+              component = "descendant-or-self::"
+              components << component
+            end
           when :self
-            string << "."
+            next_op = parsed[0]
+            if next_op == :node
+              parsed.shift
+              components << "."
+            else
+              component = "self::"
+              components << component
+            end
           when :parent
-            string << ".."
+            next_op = parsed[0]
+            if next_op == :node
+              parsed.shift
+              components << ".."
+            else
+              component = "parent::"
+              components << component
+            end
           when :any
-            string << "*"
+            component << "*"
           when :text
-            string << "text()"
+            component << "text()"
           when :following, :following_sibling,
                 :ancestor, :ancestor_or_self, :descendant,
                 :namespace, :preceding, :preceding_sibling
-            string << "/" unless string.size == 0
-            string << op.to_s.tr("_", "-")
-            string << "::"
+            component = op.to_s.tr("_", "-") << "::"
+            components << component
           when :qname
-            prefix = path.shift
-            name = path.shift
-            string << prefix+":" if prefix.size > 0
-            string << name
+            prefix = parsed.shift
+            name = parsed.shift
+            component << prefix+":" if prefix.size > 0
+            component << name
           when :predicate
-            string << '['
-            string << predicate_to_string( path.shift ) {|x| abbreviate( x ) }
-            string << ']'
+            component << '['
+            component << predicate_to_path(parsed.shift) {|x| abbreviate(x)}
+            component << ']'
           when :document
-            document = true
+            components << ""
           when :function
-            string << path.shift
-            string << "( "
-            string << predicate_to_string( path.shift[0] ) {|x| abbreviate( x )}
-            string << " )"
+            component << parsed.shift
+            component << "( "
+            component << predicate_to_path(parsed.shift[0]) {|x| abbreviate(x)}
+            component << " )"
           when :literal
-            string << %Q{ "#{path.shift}" }
+            component << quote_literal(parsed.shift)
           else
-            string << "/" unless string.size == 0
-            string << "UNKNOWN("
-            string << op.inspect
-            string << ")"
+            component << "UNKNOWN("
+            component << op.inspect
+            component << ")"
           end
         end
-        string = "/"+string if document
-        return string
+        case components
+        when [""]
+          "/"
+        when ["", ""]
+          "//"
+        else
+          components.join("/")
+        end
       end
 
-      def expand( path )
-        path = path.kind_of?(String) ? parse( path ) : path
-        string = ""
+      def expand(path_or_parsed)
+        if path_or_parsed.kind_of?(String)
+          parsed = parse(path_or_parsed)
+        else
+          parsed = path_or_parsed
+        end
+        path = ""
         document = false
-        while path.size > 0
-          op = path.shift
+        while parsed.size > 0
+          op = parsed.shift
           case op
           when :node
-            string << "node()"
+            path << "node()"
           when :attribute, :child, :following, :following_sibling,
                 :ancestor, :ancestor_or_self, :descendant, :descendant_or_self,
                 :namespace, :preceding, :preceding_sibling, :self, :parent
-            string << "/" unless string.size == 0
-            string << op.to_s.tr("_", "-")
-            string << "::"
+            path << "/" unless path.size == 0
+            path << op.to_s.tr("_", "-")
+            path << "::"
           when :any
-            string << "*"
+            path << "*"
           when :qname
-            prefix = path.shift
-            name = path.shift
-            string << prefix+":" if prefix.size > 0
-            string << name
+            prefix = parsed.shift
+            name = parsed.shift
+            path << prefix+":" if prefix.size > 0
+            path << name
           when :predicate
-            string << '['
-            string << predicate_to_string( path.shift ) { |x| expand(x) }
-            string << ']'
+            path << '['
+            path << predicate_to_path( parsed.shift ) { |x| expand(x) }
+            path << ']'
           when :document
             document = true
           else
-            string << "/" unless string.size == 0
-            string << "UNKNOWN("
-            string << op.inspect
-            string << ")"
+            path << "UNKNOWN("
+            path << op.inspect
+            path << ")"
           end
         end
-        string = "/"+string if document
-        return string
+        path = "/"+path if document
+        path
       end
 
-      def predicate_to_string( path, &block )
-        string = ""
-        case path[0]
+      def predicate_to_path(parsed, &block)
+        path = ""
+        case parsed[0]
         when :and, :or, :mult, :plus, :minus, :neq, :eq, :lt, :gt, :lteq, :gteq, :div, :mod, :union
-          op = path.shift
+          op = parsed.shift
           case op
           when :eq
             op = "="
@@ -156,36 +192,50 @@ module REXML
           when :union
             op = "|"
           end
-          left = predicate_to_string( path.shift, &block )
-          right = predicate_to_string( path.shift, &block )
-          string << " "
-          string << left
-          string << " "
-          string << op.to_s
-          string << " "
-          string << right
-          string << " "
+          left = predicate_to_path( parsed.shift, &block )
+          right = predicate_to_path( parsed.shift, &block )
+          path << left
+          path << " "
+          path << op.to_s
+          path << " "
+          path << right
         when :function
-          path.shift
-          name = path.shift
-          string << name
-          string << "( "
-          string << predicate_to_string( path.shift, &block )
-          string << " )"
+          parsed.shift
+          name = parsed.shift
+          path << name
+          path << "("
+          parsed.shift.each_with_index do |argument, i|
+            path << ", " if i > 0
+            path << predicate_to_path(argument, &block)
+          end
+          path << ")"
         when :literal
-          path.shift
-          string << " "
-          string << path.shift.inspect
-          string << " "
+          parsed.shift
+          path << quote_literal(parsed.shift)
         else
-          string << " "
-          string << yield( path )
-          string << " "
+          path << yield( parsed )
         end
-        return string.squeeze(" ")
+        return path.squeeze(" ")
       end
+      # For backward compatibility
+      alias_method :preciate_to_string, :predicate_to_path
 
       private
+      def quote_literal( literal )
+        case literal
+        when String
+          # XPath 1.0 does not support escape characters.
+          # Assumes literal does not contain both single and double quotes.
+          if literal.include?("'")
+            "\"#{literal}\""
+          else
+            "'#{literal}'"
+          end
+        else
+          literal.inspect
+        end
+      end
+
       #LocationPath
       #  | RelativeLocationPath
       #  | '/' RelativeLocationPath?

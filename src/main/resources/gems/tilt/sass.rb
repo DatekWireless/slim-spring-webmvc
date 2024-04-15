@@ -1,17 +1,31 @@
-require 'tilt/template'
+# frozen_string_literal: true
+require_relative 'template'
 
 module Tilt
-  # Sass template implementation. See:
-  # http://haml.hamptoncatlin.com/
+  # Sass template implementation for generating CSS. See: https://sass-lang.com/
   #
   # Sass templates do not support object scopes, locals, or yield.
-  class SassTemplate < Template
+  class SassTemplate < StaticTemplate
     self.default_mime_type = 'text/css'
 
     begin
       require 'sass-embedded'
+    # :nocov:
       require 'uri'
-      Engine = nil
+
+      private
+
+      def _prepare_output
+        ::Sass.compile_string(@data, **sass_options).css
+      end
+
+      def sass_options
+        path = File.absolute_path(eval_file)
+        path = '/' + path unless path.start_with?('/')
+        @options[:url] = ::URI::File.build([nil, ::URI::DEFAULT_PARSER.escape(path)]).to_s
+        @options[:syntax] = :indented
+        @options
+      end
     rescue LoadError => err
       begin
         require 'sassc'
@@ -24,55 +38,32 @@ module Tilt
           raise err
         end
       end
-    end
 
-    def prepare
-      @engine = unless Engine.nil?
-                  Engine.new(data, sass_options)
-                end
-    end
+      private
 
-    def evaluate(scope, locals, &block)
-      @output ||= if @engine.nil?
-                    ::Sass.compile_string(data, **sass_embedded_options).css
-                  else
-                    @engine.render
-                  end
-    end
+      def _prepare_output
+        Engine.new(@data, sass_options).render
+      end
 
-    def allows_script?
-      false
-    end
-
-  private
-    def eval_file_url
-      path = File.absolute_path(eval_file)
-      path = '/' + path unless path.start_with?('/')
-      ::URI::File.build([nil, ::URI::DEFAULT_PARSER.escape(path)]).to_s
-    end
-
-    def sass_embedded_options
-      options.merge(:url => eval_file_url, :syntax => :indented)
-    end
-
-    def sass_options
-      options.merge(:filename => eval_file, :line => line, :syntax => :sass)
+      def sass_options
+        @options[:filename] = eval_file
+        @options[:line] = @line
+        @options[:syntax] = :sass
+        @options
+      end
+    # :nocov:
     end
   end
 
-  # Sass's new .scss type template implementation.
   class ScssTemplate < SassTemplate
     self.default_mime_type = 'text/css'
 
-  private
-    def sass_embedded_options
-      options.merge(:url => eval_file_url, :syntax => :scss)
-    end
+    private
 
     def sass_options
-      options.merge(:filename => eval_file, :line => line, :syntax => :scss)
+      super
+      @options[:syntax] = :scss
+      @options
     end
   end
-
 end
-

@@ -37,7 +37,7 @@ module SlimRenderer
   LAYOUT_TEMPLATE_PATH = "/views/layouts"
   DEFAULT_LAYOUT = "#{LAYOUT_TEMPLATE_PATH}/layout.slim"
 
-  @@log_rendering_errors = true
+  @@log_rendering_errors = false
 
   def self.log_rendering_errors
     @@log_rendering_errors
@@ -109,8 +109,10 @@ module SlimRenderer
     HTML
     if log_rendering_errors
       LOG.error message
+      "<h1>Whoops!</h1><pre>#{CGI.escapeHTML(message)}</pre>"
+    else
+      raise
     end
-    "<h1>Whoops!</h1><pre>#{CGI.escapeHTML(message)}</pre>"
   end
 
   module AccessorPatch

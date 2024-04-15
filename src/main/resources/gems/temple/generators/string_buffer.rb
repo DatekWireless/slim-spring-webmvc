@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Temple
   module Generators
     # Implements a string buffer.
@@ -10,7 +11,7 @@ module Temple
     # @api public
     class StringBuffer < ArrayBuffer
       def create_buffer
-        "#{buffer} = ''"
+        "#{buffer} = ''.dup"
       end
 
       def return_buffer

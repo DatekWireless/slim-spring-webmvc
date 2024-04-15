@@ -1,4 +1,5 @@
-require 'tilt/erb'
+# frozen_string_literal: true
+require_relative 'erb'
 require 'erubis'
 
 module Tilt
@@ -15,13 +16,18 @@ module Tilt
   #                   the engine class instead of the default. All content
   #                   within <%= %> blocks will be automatically html escaped.
   class ErubisTemplate < ERBTemplate
+    # Remove in Tilt 2.3
+    @default_output_variable = nil
+
     def prepare
       @freeze_string_literals = !!@options.delete(:freeze)
-      @outvar = options.delete(:outvar) || self.class.default_output_variable
-      @options.merge!(:preamble => false, :postamble => false, :bufvar => @outvar)
-      engine_class = options.delete(:engine_class)
-      engine_class = ::Erubis::EscapedEruby if options.delete(:escape_html)
-      @engine = (engine_class || ::Erubis::Eruby).new(data, options)
+      @outvar = @options.delete(:outvar) || self.class._default_output_variable  || '_erbout'
+      @options[:preamble] = false
+      @options[:postamble] = false
+      @options[:bufvar] = @outvar
+      engine_class = @options.delete(:engine_class)
+      engine_class = ::Erubis::EscapedEruby if @options.delete(:escape_html)
+      @engine = (engine_class || ::Erubis::Eruby).new(@data, @options)
     end
 
     def precompiled_preamble(locals)

@@ -1,11 +1,12 @@
-require 'tilt/template'
+# frozen_string_literal: true
+require_relative 'template'
 require 'liquid'
 
 module Tilt
   # Liquid template implementation. See:
   # http://liquidmarkup.org/
   #
-  # Liquid is designed to be a *safe* template system and threfore
+  # Liquid is designed to be a *safe* template system and therefore
   # does not provide direct access to execuatable scopes. In order to
   # support a +scope+, the +scope+ must be able to represent itself
   # as a hash by responding to #to_h. If the +scope+ does not respond
@@ -17,28 +18,23 @@ module Tilt
   # time when using this template engine.
   class LiquidTemplate < Template
     def prepare
-      @engine = ::Liquid::Template.parse(data, liquid_options)
+      @options[:line_numbers] = true unless @options.has_key?(:line_numbers)
+      @engine = ::Liquid::Template.parse(@data, @options)
     end
 
-    def evaluate(scope, locals, &block)
-      locals = locals.inject({}){ |h,(k,v)| h[k.to_s] = v ; h }
+    def evaluate(scope, locs)
+      locals = {}
       if scope.respond_to?(:to_h)
-        scope  = scope.to_h.inject({}){ |h,(k,v)| h[k.to_s] = v ; h }
-        locals = scope.merge(locals)
+        scope.to_h.each{|k, v| locals[k.to_s] = v}
       end
-      locals['yield'] = block.nil? ? '' : yield
+      locs.each{|k, v| locals[k.to_s] = v}
+      locals['yield'] = block_given? ? yield : ''
       locals['content'] = locals['yield']
       @engine.render(locals)
     end
 
     def allows_script?
       false
-    end
-
-    private
-
-    def liquid_options
-      { line_numbers: true }.merge options
     end
   end
 end

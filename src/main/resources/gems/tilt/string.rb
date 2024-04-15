@@ -1,12 +1,13 @@
-require 'tilt/template'
+# frozen_string_literal: true
+require_relative 'template'
 
 module Tilt
   # The template source is evaluated as a Ruby string. The #{} interpolation
   # syntax can be used to generated dynamic output.
   class StringTemplate < Template
     def prepare
-      hash = "TILT#{data.hash.abs}"
-      @code = String.new("<<#{hash}.chomp\n#{data}\n#{hash}")
+      hash = "TILT#{@data.hash.abs}"
+      @code = String.new("<<#{hash}.chomp\n#{@data}\n#{hash}")
     end
 
     def precompiled_template(locals)

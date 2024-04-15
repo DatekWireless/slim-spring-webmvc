@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Tilt
   # @private
   module CompiledTemplates
@@ -40,12 +41,12 @@ module Tilt
         @metadata ||= {}
       end
 
-      # @deprecated Use `.metadata[:mime_type]` instead.
+      # Use `.metadata[:mime_type]` instead.
       def default_mime_type
         metadata[:mime_type]
       end
 
-      # @deprecated Use `.metadata[:mime_type] = val` instead.
+      # Use `.metadata[:mime_type] = val` instead.
       def default_mime_type=(value)
         metadata[:mime_type] = value
       end
@@ -57,33 +58,28 @@ module Tilt
     # a block is required.
     #
     # All arguments are optional.
-    def initialize(file=nil, line=1, options={}, &block)
-      @file, @line, @options = nil, 1, {}
+    def initialize(file=nil, line=nil, options=nil)
+      @file, @line, @options = nil, 1, nil
 
-      [options, line, file].compact.each do |arg|
-        case
-        when arg.respond_to?(:to_str)  ; @file = arg.to_str
-        when arg.respond_to?(:to_int)  ; @line = arg.to_int
-        when arg.respond_to?(:to_hash) ; @options = arg.to_hash.dup
-        when arg.respond_to?(:path)    ; @file = arg.path
-        when arg.respond_to?(:to_path) ; @file = arg.to_path
-        else raise TypeError, "Can't load the template file. Pass a string with a path " +
-          "or an object that responds to 'to_str', 'path' or 'to_path'"
-        end
-      end
+      process_arg(options)
+      process_arg(line)
+      process_arg(file)
 
-      raise ArgumentError, "file or block required" if (@file || block).nil?
+      raise ArgumentError, "file or block required" unless @file || block_given?
 
-      # used to hold compiled template methods
-      @compiled_method = {}
+      @options ||= {}
 
-      # used on 1.9 to set the encoding if it is not set elsewhere (like a magic comment)
-      # currently only used if template compiles to ruby
+      set_compiled_method_cache
+
+      # Force the encoding of the input data
       @default_encoding = @options.delete :default_encoding
 
+      # Skip encoding detection from magic comments and forcing that encoding
+      # for compiled templates
+      @skip_compiled_encoding_detection = @options.delete :skip_compiled_encoding_detection
+
       # load template data and prepare (uses binread to avoid encoding issues)
-      @reader = block || lambda { |t| read_template_file }
-      @data = @reader.call(self)
+      @data = block_given? ? yield(self) : read_template_file
 
       if @data.respond_to?(:force_encoding)
         if default_encoding
@@ -102,28 +98,29 @@ module Tilt
     # Render the template in the given scope with the locals specified. If a
     # block is given, it is typically available within the template via
     # +yield+.
-    def render(scope=nil, locals={}, &block)
-      scope ||= Object.new
+    def render(scope=nil, locals=nil, &block)
       current_template = Thread.current[:tilt_current_template]
       Thread.current[:tilt_current_template] = self
-      evaluate(scope, locals || {}, &block)
+      evaluate(scope || Object.new, locals || EMPTY_HASH, &block)
     ensure
       Thread.current[:tilt_current_template] = current_template
     end
 
     # The basename of the template file.
     def basename(suffix='')
-      File.basename(file, suffix) if file
+      File.basename(@file, suffix) if @file
     end
 
     # The template file's basename with all extensions chomped off.
     def name
-      basename.split('.', 2).first if basename
+      if bname = basename
+        bname.split('.', 2).first
+      end
     end
 
     # The filename used in backtraces to describe the template.
     def eval_file
-      file || '(__TEMPLATE__)'
+      @file || '(__TEMPLATE__)'
     end
 
     # An empty Hash that the template engine can populate with various
@@ -147,6 +144,24 @@ module Tilt
       @compiled_path = path
     end
 
+    # The compiled method for the locals keys and scope_class provided.
+    # Returns an UnboundMethod, which can be used to define methods
+    # directly on the scope class, which are much faster to call than
+    # Tilt's normal rendering.
+    def compiled_method(locals_keys, scope_class=nil)
+      key = [scope_class, locals_keys].freeze
+      LOCK.synchronize do
+        if meth = @compiled_method[key]
+          return meth
+        end
+      end
+      meth = compile_template_method(locals_keys, scope_class)
+      LOCK.synchronize do
+        @compiled_method[key] = meth
+      end
+      meth
+    end
+
     protected
 
     # @!group For template implementations
@@ -157,13 +172,16 @@ module Tilt
     # encoding.
     attr_reader :default_encoding
 
+    def skip_compiled_encoding_detection?
+      @skip_compiled_encoding_detection
+    end
+
     # Do whatever preparation is necessary to setup the underlying template
     # engine. Called immediately after template data is loaded. Instance
     # variables set in this method are available when #evaluate is called.
     #
-    # Subclasses must provide an implementation of this method.
+    # Empty by default as some subclasses do not need separate preparation.
     def prepare
-      raise NotImplementedError
     end
 
     CLASS_METHOD = Kernel.instance_method(:class)
@@ -183,14 +201,18 @@ module Tilt
       when Object
         scope_class = Module === scope ? scope : scope.class
       else
+        # :nocov:
         scope_class = USE_BIND_CALL ? CLASS_METHOD.bind_call(scope) : CLASS_METHOD.bind(scope).call
+        # :nocov:
       end
       method = compiled_method(locals_keys, scope_class)
 
       if USE_BIND_CALL
         method.bind_call(scope, locals, &block)
+      # :nocov:
       else
         method.bind(scope).call(locals, &block)
+      # :nocov:
       end
     end
 
@@ -209,15 +231,19 @@ module Tilt
       postamble = precompiled_postamble(local_keys)
       source = String.new
 
-      # Ensure that our generated source code has the same encoding as the
-      # the source code generated by the template engine.
-      if source.respond_to?(:force_encoding)
-        template_encoding = extract_encoding(template)
+      unless skip_compiled_encoding_detection?
+        # Ensure that our generated source code has the same encoding as the
+        # the source code generated by the template engine.
+        template_encoding = extract_encoding(template){|t| template = t}
 
-        source.force_encoding(template_encoding)
-        template.force_encoding(template_encoding)
+        if template.encoding != template_encoding
+          # template should never be frozen here. If it was frozen originally,
+          # then extract_encoding should yield a dup.
+          template.force_encoding(template_encoding)
+        end
       end
 
+      source.force_encoding(template.encoding)
       source << preamble << "\n" << template << "\n" << postamble
 
       [source, preamble.count("\n")+1]
@@ -245,30 +271,52 @@ module Tilt
 
     private
 
-    def read_template_file
-      data = File.open(file, 'rb') { |io| io.read }
-      if data.respond_to?(:force_encoding)
-        # Set it to the default external (without verifying)
-        data.force_encoding(Encoding.default_external) if Encoding.default_external
+    def process_arg(arg)
+      if arg
+        case
+        when arg.respond_to?(:to_str)  ; @file = arg.to_str
+        when arg.respond_to?(:to_int)  ; @line = arg.to_int
+        when arg.respond_to?(:to_hash) ; @options = arg.to_hash.dup
+        when arg.respond_to?(:path)    ; @file = arg.path
+        when arg.respond_to?(:to_path) ; @file = arg.to_path
+        else raise TypeError, "Can't load the template file. Pass a string with a path " +
+          "or an object that responds to 'to_str', 'path' or 'to_path'"
+        end
       end
+    end
+
+    def read_template_file
+      data = File.binread(file)
+      # Set it to the default external (without verifying)
+      # :nocov:
+      data.force_encoding(Encoding.default_external) if Encoding.default_external
+      # :nocov:
       data
     end
 
-    # The compiled method for the locals keys provided.
-    def compiled_method(locals_keys, scope_class=nil)
-      LOCK.synchronize do
-        @compiled_method[[scope_class, locals_keys]] ||= compile_template_method(locals_keys, scope_class)
-      end
+    def set_compiled_method_cache
+      @compiled_method = {}
     end
 
     def local_extraction(local_keys)
-      local_keys.map do |k|
+      assignments = local_keys.map do |k|
         if k.to_s =~ /\A[a-z_][a-zA-Z_0-9]*\z/
           "#{k} = locals[#{k.inspect}]"
         else
           raise "invalid locals key: #{k.inspect} (keys must be variable names)"
         end
-      end.join("\n")
+      end
+
+      s = "locals = locals[:locals]"
+      if assignments.delete(s)
+        # If there is a locals key itself named `locals`, delete it from the ordered keys so we can
+        # assign it last. This is important because the assignment of all other locals depends on the
+        # `locals` local variable still matching the `locals` method argument given to the method
+        # created in `#compile_template_method`.
+        assignments << s
+      end
+
+      assignments.join("\n")
     end
 
     def compile_template_method(local_keys, scope_class=nil)
@@ -277,10 +325,7 @@ module Tilt
 
       method_name = "__tilt_#{Thread.current.object_id.abs}"
       method_source = String.new
-
-      if method_source.respond_to?(:force_encoding)
-        method_source.force_encoding(source.encoding)
-      end
+      method_source.force_encoding(source.encoding)
 
       if freeze_string_literals?
         method_source << "# frozen-string-literal: true\n"
@@ -293,11 +338,11 @@ module Tilt
       method_source << source
       method_source << "\nend;end;"
 
-      bind_compiled_method(method_source, offset, scope_class, local_keys)
+      bind_compiled_method(method_source, offset, scope_class)
       unbind_compiled_method(method_name)
     end
 
-    def bind_compiled_method(method_source, offset, scope_class, local_keys)
+    def bind_compiled_method(method_source, offset, scope_class)
       path = compiled_path
       if path && scope_class.name
         path = path.dup
@@ -340,11 +385,16 @@ module Tilt
       method
     end
 
-    def extract_encoding(script)
-      extract_magic_comment(script) || script.encoding
+    def extract_encoding(script, &block)
+      extract_magic_comment(script, &block) || script.encoding
     end
 
     def extract_magic_comment(script)
+      if script.frozen?
+        script = script.dup
+        yield script
+      end
+
       binary(script) do
         script[/\A[ \t]*\#.*coding\s*[=:]\s*([[:alnum:]\-_]+).*$/n, 1]
       end
@@ -360,6 +410,46 @@ module Tilt
       yield
     ensure
       string.force_encoding(original_encoding)
+    end
+  end
+
+  class StaticTemplate < Template
+    def self.subclass(mime_type: 'text/html', &block)
+      Class.new(self) do
+        self.default_mime_type = mime_type
+
+        private
+
+        define_method(:_prepare_output, &block)
+      end
+    end
+
+    # Static templates always return the prepared output.
+    def render(scope=nil, locals=nil)
+      @output
+    end
+
+    # Raise NotImplementedError, since static templates
+    # do not support compiled methods.
+    def compiled_method(locals_keys, scope_class=nil)
+      raise NotImplementedError
+    end
+
+    # Static templates never allow script.
+    def allows_script?
+      false
+    end
+
+    protected
+
+    def prepare
+      @output = _prepare_output
+    end
+
+    private
+
+    # Do nothing, since compiled method cache is not used.
+    def set_compiled_method_cache
     end
   end
 end

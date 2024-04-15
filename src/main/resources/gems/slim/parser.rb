@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Slim
   # Parses Slim code and transforms it to a Temple expression
   # @api private
@@ -63,7 +64,7 @@ module Slim
           raise ArgumentError, 'You can only use special characters for attribute shortcuts' if k =~ /(\p{Word}|-)/
         end
         if v.include?(:attr)
-          @attr_shortcut[k] = [v[:attr]].flatten
+          @attr_shortcut[k] = v[:attr].is_a?(Proc) ? v[:attr] : [v[:attr]].flatten
         end
         if v.include?(:additional_attrs)
           @additional_attrs[k] = v[:additional_attrs]
@@ -84,7 +85,7 @@ module Slim
       @code_attr_re = /#{@attr_name}\s*=(=?)\s*/
 
       splat_prefix = Regexp.escape(options[:splat_prefix])
-      splat_regexp_source = '\A\s*' << splat_prefix << '(?=[^\s]+)'
+      splat_regexp_source = '\A\s*' + splat_prefix + '(?=[^\s]+)'
       @splat_attrs_regexp = Regexp.new(splat_regexp_source)
     end
 
@@ -335,7 +336,13 @@ module Slim
         # The class/id attribute is :static instead of :slim :interpolate,
         # because we don't want text interpolation in .class or #id shortcut
         syntax_error!('Illegal shortcut') unless shortcut = @attr_shortcut[$1]
-        shortcut.each {|a| attributes << [:html, :attr, a, [:static, $2]] }
+
+        if shortcut.is_a?(Proc)
+          shortcut.call($2).each {|a, v| attributes << [:html, :attr, a, [:static, v]] }
+        else
+          shortcut.each {|a| attributes << [:html, :attr, a, [:static, $2]] }
+        end
+
         if additional_attr_pairs = @additional_attrs[$1]
           additional_attr_pairs.each do |k,v|
             attributes << [:html, :attr, k.to_s, [:static, v]]
@@ -461,7 +468,7 @@ module Slim
     end
 
     def parse_ruby_code(outer_delimiter)
-      code, count, delimiter, close_delimiter = '', 0, nil, nil
+      code, count, delimiter, close_delimiter = ''.dup, 0, nil, nil
 
       # Attribute ends with space or attribute delimiter
       end_re = /\A[\s#{Regexp.escape outer_delimiter.to_s}]/
@@ -489,7 +496,7 @@ module Slim
     end
 
     def parse_quoted_attribute(quote)
-      value, count = '', 0
+      value, count = ''.dup, 0
 
       until count == 0 && @line[0] == quote[0]
         if @line =~ /\A(\\)?\Z/

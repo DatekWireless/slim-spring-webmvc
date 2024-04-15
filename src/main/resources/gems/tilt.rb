@@ -1,66 +1,83 @@
+# frozen_string_literal: true
 require_relative 'tilt/mapping'
 require_relative 'tilt/template'
 
 # Namespace for Tilt. This module is not intended to be included anywhere.
 module Tilt
   # Current version.
-  VERSION = '2.1.0'
+  VERSION = '2.2.0'
+
+  EMPTY_HASH = {}.freeze
+  private_constant :EMPTY_HASH
 
   @default_mapping = Mapping.new
 
-  class << self
-    # @return [Tilt::Mapping] the main mapping object
-    attr_reader :default_mapping
+  # Replace the default mapping with a finalized version of the default
+  # mapping. This can be done to improve performance after the template
+  # libraries you desire to use have already been loaded.  Once this is
+  # is called, all attempts to modify the default mapping will fail.
+  # This also freezes Tilt itself.
+  def self.finalize!
+    class << self
+      prepend(Module.new do
+        def lazy_map(*)
+          raise "Tilt.#{__callee__} not supported after Tilt.finalize! has been called"
+        end
+        alias register lazy_map
+        alias register_lazy lazy_map
+        alias register_pipeline lazy_map
+        alias prefer lazy_map
+      end)
+    end
+
+    @default_mapping = @default_mapping.finalized
+
+    freeze
   end
 
   # @private
   def self.lazy_map
-    default_mapping.lazy_map
+    @default_mapping.lazy_map
   end
 
   # @see Tilt::Mapping#register
   def self.register(template_class, *extensions)
-    default_mapping.register(template_class, *extensions)
+    @default_mapping.register(template_class, *extensions)
   end
 
   # @see Tilt::Mapping#register_lazy
   def self.register_lazy(class_name, file, *extensions)
-    default_mapping.register_lazy(class_name, file, *extensions)
+    @default_mapping.register_lazy(class_name, file, *extensions)
   end
 
   # @see Tilt::Mapping#register_pipeline
-  def self.register_pipeline(ext, options={})
-    default_mapping.register_pipeline(ext, options)
-  end
-
-  # @deprecated Use {register} instead.
-  def self.prefer(template_class, *extensions)
-    register(template_class, *extensions)
+  def self.register_pipeline(ext, options=EMPTY_HASH)
+    @default_mapping.register_pipeline(ext, options)
   end
 
   # @see Tilt::Mapping#registered?
   def self.registered?(ext)
-    default_mapping.registered?(ext)
+    @default_mapping.registered?(ext)
   end
 
   # @see Tilt::Mapping#new
-  def self.new(file, line=nil, options={}, &block)
-    default_mapping.new(file, line, options, &block)
+  def self.new(file, line=nil, options=nil, &block)
+    @default_mapping.new(file, line, options, &block)
   end
 
   # @see Tilt::Mapping#[]
   def self.[](file)
-    default_mapping[file]
+    @default_mapping[file]
   end
 
   # @see Tilt::Mapping#template_for
   def self.template_for(file)
-    default_mapping.template_for(file)
+    @default_mapping.template_for(file)
   end
 
   # @see Tilt::Mapping#templates_for
   def self.templates_for(file)
-    default_mapping.templates_for(file)
+    @default_mapping.templates_for(file)
   end
 
   # @return the template object that is currently rendering.
@@ -72,7 +89,16 @@ module Tilt
   # @note This is currently an experimental feature and might return nil
   #   in the future.
   def self.current_template
+    warn "Tilt.current_template is deprecated and will be removed in Tilt 2.3", uplevel: 1
     Thread.current[:tilt_current_template]
+  end
+
+  class << self
+    # @return [Tilt::Mapping] the main mapping object
+    attr_reader :default_mapping
+
+    # Alias register as prefer for Tilt 1.x compatibility.
+    alias prefer register
   end
 
   # Extremely simple template cache implementation. Calling applications
@@ -115,7 +141,10 @@ module Tilt
       @cache = {}
     end
   end
-
+  # :nocov:
+  # TILT3: Remove Tilt::Cache
+  deprecate_constant :Cache if respond_to?(:deprecate_constant, true)
+  # :nocov:
 
   # Template Implementations ================================================
 
@@ -125,7 +154,6 @@ module Tilt
   register_lazy :ErubiTemplate,  'tilt/erubi',  'erb', 'rhtml', 'erubi'
 
   # Markdown
-  register_lazy :BlueClothTemplate,    'tilt/bluecloth',    'markdown', 'mkd', 'md'
   register_lazy :MarukuTemplate,       'tilt/maruku',       'markdown', 'mkd', 'md'
   register_lazy :KramdownTemplate,     'tilt/kramdown',     'markdown', 'mkd', 'md'
   register_lazy :RDiscountTemplate,    'tilt/rdiscount',    'markdown', 'mkd', 'md'
@@ -143,7 +171,6 @@ module Tilt
   register_lazy :CreoleTemplate,       'tilt/creole',    'wiki', 'creole'
   register_lazy :EtanniTemplate,       'tilt/etanni',    'etn', 'etanni'
   register_lazy :HamlTemplate,         'tilt/haml',      'haml'
-  register_lazy :LessTemplate,         'tilt/less',      'less'
   register_lazy :LiquidTemplate,       'tilt/liquid',    'liquid'
   register_lazy :LiveScriptTemplate,   'tilt/livescript','ls', 'livescript'
   register_lazy :MarkabyTemplate,      'tilt/markaby',   'mab'
@@ -156,16 +183,16 @@ module Tilt
   register_lazy :RstPandocTemplate,    'tilt/rst-pandoc', 'rst'
   register_lazy :SassTemplate,         'tilt/sass',      'sass'
   register_lazy :ScssTemplate,         'tilt/sass',      'scss'
-  register_lazy :SigilTemplate,        'tilt/sigil',     'sigil'
+  register_lazy :SlimTemplate,         'tilt/slim',      'slim'
   register_lazy :StringTemplate,       'tilt/string',    'str'
   register_lazy :TypeScriptTemplate,   'tilt/typescript', 'ts', 'tsx'
   register_lazy :WikiClothTemplate,    'tilt/wikicloth', 'wiki', 'mediawiki', 'mw'
   register_lazy :YajlTemplate,         'tilt/yajl',      'yajl'
 
-  # External template engines
-  register_lazy 'Slim::Template',            'slim',            'slim'
-  register_lazy 'Tilt::HandlebarsTemplate',  'tilt/handlebars', 'handlebars', 'hbs'
-  register_lazy 'Tilt::OrgTemplate',         'org-ruby',        'org'
-  register_lazy 'Tilt::EmacsOrgTemplate',    'tilt/emacs_org',  'org'
-  register_lazy 'Tilt::JbuilderTemplate',    'tilt/jbuilder',   'jbuilder'
+  # TILT3: Remove
+  # Deprecated lazy loading of external template engines
+  register_lazy 'Tilt::HandlebarsTemplate',  'tilt/_handlebars', 'handlebars', 'hbs'
+  register_lazy 'Tilt::OrgTemplate',         'tilt/_org',        'org'
+  register_lazy 'Tilt::OrgTemplate',         'tilt/_emacs_org',  'org'
+  register_lazy 'Tilt::JbuilderTemplate',    'tilt/_jbuilder',   'jbuilder'
 end

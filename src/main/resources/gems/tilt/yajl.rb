@@ -1,8 +1,8 @@
-require 'tilt/template'
+# frozen_string_literal: true
+require_relative 'template'
 require 'yajl'
 
 module Tilt
-
   # Yajl Template implementation
   #
   # Yajl is a fast JSON parsing and encoding library for Ruby
@@ -40,14 +40,10 @@ module Tilt
   #    template.render(self)
   #
   class YajlTemplate < Template
-
     self.default_mime_type = 'application/json'
 
-    def prepare
-    end
-
     def evaluate(scope, locals, &block)
-      decorate super(scope, locals, &block)
+      decorate(super)
     end
 
     def precompiled_preamble(locals)
@@ -60,9 +56,8 @@ module Tilt
     end
 
     def precompiled_template(locals)
-      data.to_str
+      @data.to_str
     end
-
 
     # Decorates the +json+ input according to given +options+.
     #
@@ -71,7 +66,7 @@ module Tilt
     #
     # Returns the decorated String.
     def decorate(json)
-      callback, variable = options[:callback], options[:variable]
+      callback, variable = @options[:callback], @options[:variable]
       if callback && variable
         "var #{variable} = #{json}; #{callback}(#{variable});"
       elsif variable
@@ -83,5 +78,4 @@ module Tilt
       end
     end
   end
-
 end

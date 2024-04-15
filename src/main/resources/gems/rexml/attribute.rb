@@ -1,4 +1,4 @@
-# frozen_string_literal: false
+# frozen_string_literal: true
 require_relative "namespace"
 require_relative 'text'
 
@@ -13,9 +13,6 @@ module REXML
 
     # The element to which this attribute belongs
     attr_reader :element
-    # The normalized value of this attribute.  That is, the attribute with
-    # entities intact.
-    attr_writer :normalized
     PATTERN = /\s*(#{NAME_STR})\s*=\s*(["'])(.*?)\2/um
 
     NEEDS_A_SECOND_CHECK = /(<|&((#{Entity::NAME});|(#0*((?:\d+)|(?:x[a-fA-F0-9]+)));)?)/um
@@ -122,10 +119,13 @@ module REXML
     #  b = Attribute.new( "ns:x", "y" )
     #  b.to_string     # -> "ns:x='y'"
     def to_string
+      value = to_s
       if @element and @element.context and @element.context[:attribute_quote] == :quote
-        %Q^#@expanded_name="#{to_s().gsub(/"/, '&quot;')}"^
+        value = value.gsub('"', '&quot;') if value.include?('"')
+        %Q^#@expanded_name="#{value}"^
       else
-        "#@expanded_name='#{to_s().gsub(/'/, '&apos;')}'"
+        value = value.gsub("'", '&apos;') if value.include?("'")
+        "#@expanded_name='#{value}'"
       end
     end
 
@@ -141,7 +141,6 @@ module REXML
       return @normalized if @normalized
 
       @normalized = Text::normalize( @unnormalized, doctype )
-      @unnormalized = nil
       @normalized
     end
 
@@ -150,8 +149,14 @@ module REXML
     def value
       return @unnormalized if @unnormalized
       @unnormalized = Text::unnormalize( @normalized, doctype )
-      @normalized = nil
       @unnormalized
+    end
+
+    # The normalized value of this attribute.  That is, the attribute with
+    # entities intact.
+    def normalized=(new_normalized)
+      @normalized = new_normalized
+      @unnormalized = nil
     end
 
     # Returns a copy of this attribute
@@ -190,7 +195,7 @@ module REXML
     end
 
     def inspect
-      rv = ""
+      rv = +""
       write( rv )
       rv
     end

@@ -4,11 +4,10 @@ plugins {
     id "org.springframework.boot" version "2.7.18"
     id 'maven-publish'
     id 'signing'
-    id "com.github.jruby-gradle.base" version "2.1.0-alpha.2"
 }
 
 group 'no.datek'
-version '0.19.1'
+version '0.19.2'
 final String JRUBY_VERSION = '9.4.6.0';
 
 repositories {
@@ -17,7 +16,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-web:2.7.6'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'javax.servlet:javax.servlet-api:3.1.0'
     implementation "org.jruby:jruby:$JRUBY_VERSION"
 }
@@ -91,44 +90,3 @@ publishing {
         }
     }
 }
-
-import com.github.jrubygradle.JRubyExec
-
-tasks.register('installGems', JRubyExec) {
-    group 'gems'
-    description "Install gems"
-    script "${projectDir}/bin/bundle"
-    scriptArgs 'install'
-    finalizedBy 'copyGems'
-    jvmArgs '--add-opens=java.base/sun.nio.ch=ALL-UNNAMED', '--add-opens=java.base/java.io=ALL-UNNAMED'
-}
-
-tasks.register('updateGems', JRubyExec) {
-    group 'gems'
-    description "Update gems"
-    script "${projectDir}/bin/bundle"
-    scriptArgs 'update'
-    finalizedBy 'cleanGems', 'copyGems'
-    jvmArgs '--add-opens=java.base/sun.nio.ch=ALL-UNNAMED', '--add-opens=java.base/java.io=ALL-UNNAMED'
-}
-
-tasks.register('cleanGems', JRubyExec) {
-    group 'gems'
-    description "Clean gems"
-    script "${projectDir}/bin/bundle"
-    scriptArgs 'clean', '--force'
-    jvmArgs '--add-opens=java.base/sun.nio.ch=ALL-UNNAMED', '--add-opens=java.base/java.io=ALL-UNNAMED'
-}
-
-tasks.register('copyGems', Sync) {
-    group 'gems'
-    description 'Copies gems from vendor/bundle to src/main/resources/gems'
-    mustRunAfter 'cleanGems'
-    from "build/.gems/gems"
-    include "*/lib/**/*"
-    includeEmptyDirs = false
-    into("src/main/resources/gems")
-    eachFile { fcd -> fcd.relativePath = new RelativePath(true, fcd.relativePath.segments.drop(2)) }
-}
-
-jruby { jrubyVersion JRUBY_VERSION }

@@ -1,4 +1,5 @@
-require 'tilt/template'
+# frozen_string_literal: true
+require_relative 'template'
 require 'csv'
 
 module Tilt
@@ -32,13 +33,13 @@ module Tilt
     self.default_mime_type = 'text/csv'
 
     def prepare
-      @outvar = options.delete(:outvar) || '_csvout'
+      @outvar = @options.delete(:outvar) || '_csvout'
     end
 
     def precompiled_template(locals)
       <<-RUBY
-        #{@outvar} = CSV.generate(**#{options}) do |csv|
-          #{data}
+        #{@outvar} = CSV.generate(**#{@options}) do |csv|
+          #{@data}
         end
       RUBY
     end

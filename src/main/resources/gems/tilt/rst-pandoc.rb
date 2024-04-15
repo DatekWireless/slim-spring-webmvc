@@ -1,23 +1,10 @@
-require 'tilt/template'
+# frozen_string_literal: true
+require_relative 'template'
 require_relative 'pandoc'
 
-module Tilt
-  # Pandoc reStructuredText implementation. See:
-  # http://pandoc.org/
-  class RstPandocTemplate < PandocTemplate
-    self.default_mime_type = 'text/html'
+rst = {:f => "rst"}.freeze
 
-    def prepare
-      @engine = PandocRuby.new(data, :f => "rst")
-      @output = nil
-    end
-
-    def evaluate(scope, locals, &block)
-      @output ||= @engine.to_html.strip
-    end
-
-    def allows_script?
-      false
-    end
-  end
+# Pandoc reStructuredText implementation. See: # http://pandoc.org/
+Tilt::RstPandocTemplate = Tilt::StaticTemplate.subclass do
+  PandocRuby.new(@data, rst).to_html.strip
 end
