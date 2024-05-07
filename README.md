@@ -25,6 +25,13 @@ dependencies {
 @ComponentScan("no.datek.slim")
 ```
 
+## Update JRuby
+
+Edit `build.gradle` and set the desired JRuby version:
+
+    final String JRUBY_VERSION = '9.4.7.0';
+
+
 ## Release to Maven Central
 
 * Bump the version in build.gradle and commit and push.
