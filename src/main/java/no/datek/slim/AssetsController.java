@@ -1,7 +1,7 @@
 package no.datek.slim;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.nio.file.Path;
-import javax.servlet.http.HttpServletRequest;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpEntity;

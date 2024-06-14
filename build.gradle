@@ -1,13 +1,13 @@
 plugins {
     id 'java'
-    id "io.spring.dependency-management" version "1.1.0"
-    id "org.springframework.boot" version "2.7.18"
+    id "io.spring.dependency-management" version "1.1.5"
+    id "org.springframework.boot" version "3.3.0"
     id 'maven-publish'
     id 'signing'
 }
 
 group 'no.datek'
-version '0.20.0'
+version '1.0.0'
 final String JRUBY_VERSION = '9.4.7.0';
 
 repositories {
@@ -17,7 +17,6 @@ repositories {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'javax.servlet:javax.servlet-api:3.1.0'
     implementation "org.jruby:jruby:$JRUBY_VERSION"
 }
 
