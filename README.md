@@ -29,7 +29,7 @@ dependencies {
 
 Edit `build.gradle` and set the desired JRuby version:
 
-    final String JRUBY_VERSION = '9.4.7.0';
+    final String JRUBY_VERSION = '9.4.8.0';
 
 
 ## Release to Maven Central
@@ -38,7 +38,7 @@ Edit `build.gradle` and set the desired JRuby version:
 * Go to https://github.com/DatekWireless/slim-spring-webmvc/releases
 * Select "Draft a new release"
 * Select "Choose a tag"
-* Enter the tag for the new version, e.g. "v0.1.0" and **press enter**.
+* Enter the tag for the new version, e.g. "v1.0.2" and **press enter**.
 * Click on "Publish release"
 * This will trigger a release on https://github.com/DatekWireless/slim-spring-webmvc/actions
 * The release is built and published to Maven Central at
