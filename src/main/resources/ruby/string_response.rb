@@ -3,6 +3,11 @@
 require 'stringio'
 
 class StringResponse
+  # Not implementing this interface causes a memory leak.
+  # Symptom:
+  # uri:classloader:/ruby/slim_helper.rb:25: warning: already initialized constant org.jruby.gen::InterfaceImpl1623561560
+  include Java::JakartaServletHttp::HttpServletResponse
+
   attr_accessor :character_encoding, :content_type
   attr_reader :writer
 
