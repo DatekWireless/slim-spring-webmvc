@@ -284,10 +284,12 @@ module FormHelper
 
     field_value = selected&.to_s&.strip || object_field_value(object, field_name)
 
-    if field_value.blank? && prompt
-      html << %{<option value="">#{TrueClass === prompt ? message['pleaseSelect'] : CGI.escapeHTML(prompt.to_s)}</option>}
-    elsif include_blank
-      html << %{<option value="">#{TrueClass === include_blank ? "" : CGI.escapeHTML(include_blank.to_s)}</option>}
+    unless uses_select2 && multiple
+      if field_value.blank? && prompt
+        html << %{<option value="">#{TrueClass === prompt ? message['pleaseSelect'] : CGI.escapeHTML(prompt.to_s)}</option>}
+      elsif include_blank
+        html << %{<option value="">#{TrueClass === include_blank ? "" : CGI.escapeHTML(include_blank.to_s)}</option>}
+      end
     end
 
     selected_values = multiple ? field_value.split(',') : [field_value]
