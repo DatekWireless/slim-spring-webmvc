@@ -256,7 +256,7 @@ module FormHelper
     (object.respond_to?(:[]) ? object[field_name.to_sym] : object.send(field_name)).to_s.strip
   end
 
-  def select_input(object, field_name, option_map = [], **opts)
+  def select_field(object, field_name, option_map = [], **opts)
     id_name = opts.delete(:id) || field_name
     no_break = opts.delete(:no_break) || opts.delete(:inline)
     prompt = opts.delete(:prompt)
@@ -265,7 +265,7 @@ module FormHelper
     disabled = opts.delete(:disabled)
     multiple = opts.delete(:multiple)
     ondblclick = opts.delete(:ondblclick)
-    selected = opts.delete(:selected)
+    selected = opts.delete(:selected) || '' if opts.key?(:selected)
 
     uses_select2 = opts[:class] =~ /chosen-select|select2/
 
@@ -315,9 +315,9 @@ module FormHelper
     html
   end
 
-  alias select_field select_input
+  alias select_input select_field
 
-  def bootstrap_select_input(object, field_name, option_map = [], **opts, &block)
+  def bootstrap_select(object, field_name, option_map = [], **opts, &block)
     opts[:id] ||= field_name
     classes = select_classes(object, field_name, opts.delete(:class))
     hide_label = opts.delete(:hide_label) || opts.delete(:no_label)
@@ -337,7 +337,7 @@ module FormHelper
     end
 
     html << %{<div class="input-group flex-nowrap" >} if append
-    html << select_input(object, field_name, option_map, class: classes, no_break: true, **opts, &block)
+    html << select_field(object, field_name, option_map, class: classes, no_break: true, **opts, &block)
     if append
       [*append].compact.each do |addon|
         if addon.start_with?('<')
@@ -355,6 +355,9 @@ module FormHelper
     end
     html
   end
+
+  alias bootstrap_select_field bootstrap_select
+  alias bootstrap_select_input bootstrap_select
 
   # Will only work with Bootstrap
   def datetime_input(object, field_name, **opts)
