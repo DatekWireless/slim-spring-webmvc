@@ -157,7 +157,7 @@ module FormHelper
     classes
   end
 
-  def bootstrap_text_input(object, field_name, **opts)
+  def bootstrap_text_field(object, field_name, **opts)
     classes = field_classes(object, field_name, opts.delete(:class))
     hide_label = opts.delete(:hide_label) || opts.delete(:no_label)
     label_key = label_key_opt(opts, field_name)
@@ -197,6 +197,8 @@ module FormHelper
     end
     html
   end
+
+  alias bootstrap_text_input bootstrap_text_field
 
   def hidden_input(object, field_name, **opts)
     id_name = opts.delete(:id) || field_name
