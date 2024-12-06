@@ -218,6 +218,7 @@ module FormHelper
 
   def textarea(object, field_name, **opts)
     hide_label = opts.delete(:hide_label) || opts.delete(:no_label)
+    label_class = opts.delete(:label_class)
     label_style = opts.delete(:label_style)
     label_key = label_key_opt(opts, field_name)
     label_suffix = opts.delete(:hide_label_suffix) ? nil : ':'
@@ -230,7 +231,7 @@ module FormHelper
     if hide_label
       html = +""
     else
-      html = +%{<label for="#{field_name}" style="#{label_style}">#{CGI.escapeHTML(label)}</label> }
+      html = +%{<label for="#{field_name}" class="#{label_class}" style="#{label_style}">#{CGI.escapeHTML(label)}</label> }
     end
 
     html << '<span>' if appendix
@@ -249,8 +250,16 @@ module FormHelper
   end
 
   def bootstrap_textarea(object, field_name, **opts)
+    wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : WRAPPER_CLASS
+    label_class = opts.delete(:label_class) || 'form-label'
     classes = field_classes(object, field_name, opts.delete(:class))
-    textarea(object, field_name, hide_label_suffix: true, class: classes, no_break: true, **opts)
+    html = textarea(object, field_name, hide_label_suffix: true, class: classes, no_break: true, label_class:, **opts)
+    if wrapper_class.present?
+      html = <<~HTML
+        <div class="#{wrapper_class}">#{html}</div>
+      HTML
+    end
+    html
   end
 
   private def object_field_value(object, field_name)
