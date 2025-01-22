@@ -1,7 +1,6 @@
 package no.datek.slim;
 
 import jakarta.servlet.http.HttpServletRequest;
-import java.io.FileNotFoundException;
 import java.nio.file.Path;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.ContentDisposition;
@@ -14,6 +13,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.NoHandlerFoundException;
 
 @Controller
 @RequestMapping(AssetsController.PAGE_PATH)
@@ -22,11 +22,11 @@ public class AssetsController {
 
     @GetMapping("**")
     @ResponseBody
-    public HttpEntity<FileSystemResource> show(HttpServletRequest request) throws FileNotFoundException {
+    public HttpEntity<FileSystemResource> show(HttpServletRequest request) throws NoHandlerFoundException {
         String hashedPath = request.getServletPath().replace(PAGE_PATH, "");
         FileSystemResource fileSystemResource = new FileSystemResource(AssetStore.getFile(hashedPath));
         if (!fileSystemResource.isReadable()) {
-            throw new FileNotFoundException(fileSystemResource.getFilename());
+            throw new NoHandlerFoundException(request.getMethod(), request.getRequestURI(), new HttpHeaders());
         }
         HttpHeaders headers = new HttpHeaders();
         if (hashedPath.endsWith(".css")) {
