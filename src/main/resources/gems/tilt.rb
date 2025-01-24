@@ -5,12 +5,16 @@ require_relative 'tilt/template'
 # Namespace for Tilt. This module is not intended to be included anywhere.
 module Tilt
   # Current version.
-  VERSION = '2.2.0'
+  VERSION = '2.6.0'
+
+  EMPTY_ARRAY = [].freeze
+  private_constant :EMPTY_ARRAY
 
   EMPTY_HASH = {}.freeze
   private_constant :EMPTY_HASH
 
   @default_mapping = Mapping.new
+  @extract_fixed_locals = false
 
   # Replace the default mapping with a finalized version of the default
   # mapping. This can be done to improve performance after the template
@@ -18,6 +22,8 @@ module Tilt
   # is called, all attempts to modify the default mapping will fail.
   # This also freezes Tilt itself.
   def self.finalize!
+    return self if @default_mapping.is_a?(FinalizedMapping)
+
     class << self
       prepend(Module.new do
         def lazy_map(*)
@@ -80,22 +86,13 @@ module Tilt
     @default_mapping.templates_for(file)
   end
 
-  # @return the template object that is currently rendering.
-  #
-  # @example
-  #   tmpl = Tilt['index.erb'].new { '<%= Tilt.current_template %>' }
-  #   tmpl.render == tmpl.to_s
-  #
-  # @note This is currently an experimental feature and might return nil
-  #   in the future.
-  def self.current_template
-    warn "Tilt.current_template is deprecated and will be removed in Tilt 2.3", uplevel: 1
-    Thread.current[:tilt_current_template]
-  end
-
   class << self
     # @return [Tilt::Mapping] the main mapping object
     attr_reader :default_mapping
+
+    # Whether to extract fixed locals from templates by scanning the
+    # template content.
+    attr_accessor :extract_fixed_locals
 
     # Alias register as prefer for Tilt 1.x compatibility.
     alias prefer register
@@ -150,11 +147,9 @@ module Tilt
 
   # ERB
   register_lazy :ERBTemplate,    'tilt/erb',    'erb', 'rhtml'
-  register_lazy :ErubisTemplate, 'tilt/erubis', 'erb', 'rhtml', 'erubis'
   register_lazy :ErubiTemplate,  'tilt/erubi',  'erb', 'rhtml', 'erubi'
 
   # Markdown
-  register_lazy :MarukuTemplate,       'tilt/maruku',       'markdown', 'mkd', 'md'
   register_lazy :KramdownTemplate,     'tilt/kramdown',     'markdown', 'mkd', 'md'
   register_lazy :RDiscountTemplate,    'tilt/rdiscount',    'markdown', 'mkd', 'md'
   register_lazy :RedcarpetTemplate,    'tilt/redcarpet',    'markdown', 'mkd', 'md'
@@ -186,7 +181,6 @@ module Tilt
   register_lazy :SlimTemplate,         'tilt/slim',      'slim'
   register_lazy :StringTemplate,       'tilt/string',    'str'
   register_lazy :TypeScriptTemplate,   'tilt/typescript', 'ts', 'tsx'
-  register_lazy :WikiClothTemplate,    'tilt/wikicloth', 'wiki', 'mediawiki', 'mw'
   register_lazy :YajlTemplate,         'tilt/yajl',      'yajl'
 
   # TILT3: Remove

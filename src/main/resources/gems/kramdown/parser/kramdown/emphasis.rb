@@ -22,12 +22,13 @@ module Kramdown
         element = (result.length == 2 ? :strong : :em)
         type = result[0..0]
 
-        if (type == '_' && @src.pre_match =~ /[[:alpha:]]-?[[:alpha:]]*\z/) || @src.check(/\s/) ||
+        if (type == '_' && @src.pre_match =~ /[[:alpha:]]-?[[:alpha:]]*_*\z/) || @src.check(/\s/) ||
             @tree.type == element || @stack.any? {|el, _| el.type == element }
           add_text(result)
           return
         end
 
+        warnings_pos = @warnings.size
         sub_parse = lambda do |delim, elem|
           el = Element.new(elem, nil, nil, location: start_line_number)
           stop_re = /#{Regexp.escape(delim)}/
@@ -46,9 +47,13 @@ module Kramdown
           found, el, stop_re = sub_parse.call(type, :em)
         end
         if found
+          # Useful for implementing underlines.
+          el.options[:char] = type
+
           @src.scan(stop_re)
           @tree.children << el
         else
+          @warnings.slice!(0...warnings_pos)
           @src.revert_pos(saved_pos)
           @src.pos += result.length
           add_text(result)

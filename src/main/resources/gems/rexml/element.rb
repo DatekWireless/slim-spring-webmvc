@@ -7,14 +7,6 @@ require_relative "xpath"
 require_relative "parseexception"
 
 module REXML
-  # An implementation note about namespaces:
-  # As we parse, when we find namespaces we put them in a hash and assign
-  # them a unique ID.  We then convert the namespace prefix for the node
-  # to the unique ID.  This makes namespace lookup much faster for the
-  # cost of extra memory use.  We save the namespace prefix for the
-  # context node and convert it back when we write it.
-  @@namespaces = {}
-
   # An \REXML::Element object represents an XML element.
   #
   # An element:
@@ -449,9 +441,14 @@ module REXML
     # Related: #root_node, #document.
     #
     def root
-      return elements[1] if self.kind_of? Document
-      return self if parent.kind_of? Document or parent.nil?
-      return parent.root
+      target = self
+      while target
+        return target.elements[1] if target.kind_of? Document
+        parent = target.parent
+        return target if parent.kind_of? Document or parent.nil?
+        target = parent
+      end
+      nil
     end
 
     # :call-seq:
@@ -627,8 +624,12 @@ module REXML
       else
         prefix = "xmlns:#{prefix}" unless prefix[0,5] == 'xmlns'
       end
-      ns = attributes[ prefix ]
-      ns = parent.namespace(prefix) if ns.nil? and parent
+      ns = nil
+      target = self
+      while ns.nil? and target
+        ns = target.attributes[prefix]
+        target = target.parent
+      end
       ns = '' if ns.nil? and prefix == 'xmlns'
       return ns
     end
@@ -1284,16 +1285,11 @@ module REXML
     #   document.root.attribute("x", "a") # => a:x='a:x'
     #
     def attribute( name, namespace=nil )
-      prefix = nil
-      if namespaces.respond_to? :key
-        prefix = namespaces.key(namespace) if namespace
-      else
-        prefix = namespaces.index(namespace) if namespace
-      end
+      prefix = namespaces.key(namespace) if namespace
       prefix = nil if prefix == 'xmlns'
 
       ret_val =
-        attributes.get_attribute( "#{prefix ? prefix + ':' : ''}#{name}" )
+        attributes.get_attribute( prefix ? "#{prefix}:#{name}" : name )
 
       return ret_val unless ret_val.nil?
       return nil if prefix.nil?
@@ -2388,17 +2384,6 @@ module REXML
       elsif old_attr.kind_of? Hash
         old_attr[value.prefix] = value
       elsif old_attr.prefix != value.prefix
-        # Check for conflicting namespaces
-        if value.prefix != "xmlns" and old_attr.prefix != "xmlns"
-          old_namespace = old_attr.namespace
-          new_namespace = value.namespace
-          if old_namespace == new_namespace
-            raise ParseException.new(
-                    "Namespace conflict in adding attribute \"#{value.name}\": "+
-                    "Prefix \"#{old_attr.prefix}\" = \"#{old_namespace}\" and "+
-                    "prefix \"#{value.prefix}\" = \"#{new_namespace}\"")
-          end
-        end
         store value.name, {old_attr.prefix => old_attr,
                            value.prefix    => value}
       else

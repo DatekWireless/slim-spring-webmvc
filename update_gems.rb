@@ -6,7 +6,8 @@ if RUBY_ENGINE != 'jruby'
   abort "Run this script with JRuby!"
 end
 
-system "bin/bundle update --bundler"
+FileUtils.rm_rf 'gems.locked'
+system "bin/bundle lock"
 system "bin/bundle config set --local deployment 'true'"
 system "bin/bundle install"
 

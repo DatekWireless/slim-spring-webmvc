@@ -57,15 +57,11 @@ if Concurrent.on_jruby?
       end
 
       def ns_shuttingdown?
-        if @executor.respond_to? :isTerminating
-          @executor.isTerminating
-        else
-          false
-        end
+        @executor.isShutdown && !@executor.isTerminated
       end
 
       def ns_shutdown?
-        @executor.isShutdown || @executor.isTerminated
+        @executor.isTerminated
       end
 
       class Job
@@ -88,10 +84,11 @@ if Concurrent.on_jruby?
 
       def initialize(daemonize = true)
         @daemonize = daemonize
+        @java_thread_factory = java.util.concurrent.Executors.defaultThreadFactory
       end
 
       def newThread(runnable)
-        thread = java.util.concurrent.Executors.defaultThreadFactory().newThread(runnable)
+        thread = @java_thread_factory.newThread(runnable)
         thread.setDaemon(@daemonize)
         return thread
       end

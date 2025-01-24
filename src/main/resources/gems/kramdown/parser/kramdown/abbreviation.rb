@@ -42,12 +42,14 @@ module Kramdown
         return if @root.options[:abbrev_defs].empty?
         unless regexps
           sorted_abbrevs = @root.options[:abbrev_defs].keys.sort {|a, b| b.length <=> a.length }
-          regexps = [Regexp.union(*sorted_abbrevs.map {|k| /#{Regexp.escape(k)}/ })]
+          regexps = [Regexp.union(*sorted_abbrevs.map do |k|
+            /#{Regexp.escape(k).gsub(/\\\s/, "[\\s\\p{Z}]+").force_encoding(Encoding::UTF_8)}/
+          end)]
           regexps << /(?=(?:\W|^)#{regexps.first}(?!\w))/ # regexp should only match on word boundaries
         end
         el.children.map! do |child|
           if child.type == :text && el.options[:content_model] != :raw
-            if child.value =~ regexps.first
+            if child.value.match?(regexps.first)
               result = []
               strscan = Kramdown::Utils::StringScanner.new(child.value, child.options[:location])
               text_lineno = strscan.current_line_number

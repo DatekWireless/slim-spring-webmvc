@@ -32,6 +32,13 @@ Edit `build.gradle` and set the desired JRuby version:
     final String JRUBY_VERSION = '9.4.8.0';
 
 
+## Update gems
+
+Run the provided script:
+
+        chruby jruby
+        jruby ./update_gems.rb
+
 ## Release to Maven Central
 
 * Bump the version in build.gradle and commit and push.

@@ -24,10 +24,8 @@ module INotify
   #   # Nothing happens until you run the notifier!
   #   notifier.run
   class Notifier
-    # A list of directories that should never be recursively watched.
-    #
     # * Files in `/dev/fd` sometimes register as directories, but are not enumerable.
-    RECURSIVE_BLACKLIST = %w[/dev/fd]
+    NON_RECURSIVE = "/dev/fd"
 
     # A hash from {Watcher} ids to the instances themselves.
     #
@@ -50,6 +48,7 @@ module INotify
     # @raise [SystemCallError] if inotify failed to initialize for some reason
     def initialize
       @running = Mutex.new
+      @stop = false
       @pipe = IO.pipe
       # JRuby shutdown sometimes runs IO finalizers before all threads finish.
       if RUBY_ENGINE == 'jruby'
@@ -197,20 +196,17 @@ module INotify
     def watch(path, *flags, &callback)
       return Watcher.new(self, path, *flags, &callback) unless flags.include?(:recursive)
 
-      dir = Dir.new(path)
+      dont_follow = flags.include?(:dont_follow)
 
-      dir.each do |base|
+      Dir.each_child(path) do |base|
         d = File.join(path, base)
-        binary_d = d.respond_to?(:force_encoding) ? d.dup.force_encoding('BINARY') : d
-        next if binary_d =~ /\/\.\.?$/ # Current or parent directory
-        next if RECURSIVE_BLACKLIST.include?(d)
-        next if flags.include?(:dont_follow) && File.symlink?(d)
-        next if !File.directory?(d)
+        next unless File.directory?(d)
+        next if dont_follow && File.symlink?(d)
+        next if NON_RECURSIVE == d
 
         watch(d, *flags, &callback)
       end
 
-      dir.close
 
       rec_flags = [:create, :moved_to]
       return watch(path, *((flags - [:recursive]) | rec_flags)) do |event|
@@ -231,12 +227,12 @@ module INotify
     def run
       @running.synchronize do
         Thread.current[:INOTIFY_RUN_THREAD] = true
-        @stop = false
 
         process until @stop
       end
     ensure
       Thread.current[:INOTIFY_RUN_THREAD] = false
+      @stop = false
     end
 
     # Stop watching for filesystem events.

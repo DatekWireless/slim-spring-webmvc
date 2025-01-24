@@ -100,8 +100,12 @@ module Kramdown
         figure_attr = el.attr.dup
         image_attr = el.children.first.attr.dup
 
-        figure_attr['class'] = image_attr.delete('class') if image_attr.key?('class') and not figure_attr.key?('class')
-        figure_attr['id'] = image_attr.delete('id') if image_attr.key?('id') and not figure_attr.key?('id')
+        if image_attr.key?('class') && !figure_attr.key?('class')
+          figure_attr['class'] = image_attr.delete('class')
+        end
+        if image_attr.key?('id') && !figure_attr.key?('id')
+          figure_attr['id'] = image_attr.delete('id')
+        end
 
         body = "#{' ' * (indent + @indent)}<img#{html_attributes(image_attr)} />\n" \
           "#{' ' * (indent + @indent)}<figcaption>#{image_attr['alt']}</figcaption>\n"
@@ -128,7 +132,7 @@ module Kramdown
                 when "\t" then "<span class=\"ws-tab#{suffix}\">\t</span>"
                 when " " then "<span class=\"ws-space#{suffix}\">&#8901;</span>"
                 end
-              end.join('')
+              end.join
             end
           end
           code_attr = {}
@@ -147,6 +151,13 @@ module Kramdown
         if @options[:auto_ids] && !attr['id']
           attr['id'] = generate_id(el.options[:raw_text])
         end
+
+        if @options[:header_links] && attr['id'].to_s.length > 0
+          link = Element.new(:a, nil, nil)
+          link.attr['href'] = "##{attr['id']}"
+          el.children.unshift(link)
+        end
+
         @toc << [el.options[:level], attr['id'], el.children] if attr['id'] && in_toc?(el)
         level = output_header_level(el.options[:level])
         format_as_block_html("h#{level}", attr, inner(el, indent), indent)
@@ -179,7 +190,7 @@ module Kramdown
         output = ' ' * indent << "<#{el.type}" << html_attributes(el.attr) << ">"
         res = inner(el, indent)
         if el.children.empty? || (el.children.first.type == :p && el.children.first.options[:transparent])
-          output << res << (res =~ /\n\Z/ ? ' ' * indent : '')
+          output << res << (res.match?(/\n\Z/) ? ' ' * indent : '')
         else
           output << "\n" << res << ' ' * indent
         end
@@ -303,9 +314,10 @@ module Kramdown
           @footnotes << [name, el.value, number, 0]
           @footnotes_by_name[name] = @footnotes.last
         end
-        "<sup id=\"fnref:#{name}#{repeat}\" role=\"doc-noteref\">" \
-          "<a href=\"#fn:#{name}\" class=\"footnote\" rel=\"footnote\">" \
-          "#{number}</a></sup>"
+        formatted_link_text = sprintf(@options[:footnote_link_text], number)
+        "<sup id=\"fnref:#{name}#{repeat}\">" \
+          "<a href=\"#fn:#{name}\" class=\"footnote\" rel=\"footnote\" role=\"doc-noteref\">" \
+          "#{formatted_link_text}</a></sup>"
       end
 
       def convert_raw(el, _indent)
@@ -340,7 +352,7 @@ module Kramdown
         if (result = @options[:typographic_symbols][el.value])
           escape_html(result, :text)
         else
-          TYPOGRAPHIC_SYMS[el.value].map {|e| entity_to_str(e) }.join('')
+          TYPOGRAPHIC_SYMS[el.value].map {|e| entity_to_str(e) }.join
         end
       end
 
@@ -378,11 +390,7 @@ module Kramdown
         end
         if @toc_code
           toc_tree = generate_toc_tree(@toc, @toc_code[0], @toc_code[1] || {})
-          text = if !toc_tree.children.empty?
-                   convert(toc_tree, 0)
-                 else
-                   ''
-                 end
+          text = toc_tree.children.empty? ? '' : convert(toc_tree, 0)
           result.sub!(/#{@toc_code.last}/, text.gsub(/\\/, "\\\\\\\\"))
         end
         result
@@ -492,7 +500,7 @@ module Kramdown
         backlink_text = escape_html(@options[:footnote_backlink], :text)
         while i < @footnotes.length
           name, data, _, repeat = *@footnotes[i]
-          li = Element.new(:li, nil, 'id' => "fn:#{name}", 'role' => 'doc-endnote')
+          li = Element.new(:li, nil, 'id' => "fn:#{name}")
           li.children = Marshal.load(Marshal.dump(data.children))
 
           para = nil

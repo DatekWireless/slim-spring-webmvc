@@ -41,12 +41,12 @@ module FFI
   class Struct
 
     # Get struct size
-    # @return [Numeric]
+    # @return [Integer]
     def size
       self.class.size
     end
 
-    # @return [Fixnum] Struct alignment
+    # @return [Integer] Struct alignment
     def alignment
       self.class.alignment
     end
@@ -87,13 +87,13 @@ module FFI
     end
 
     # Get struct size
-    # @return [Numeric]
+    # @return [Integer]
     def self.size
       defined?(@layout) ? @layout.size : defined?(@size) ? @size : 0
     end
 
     # set struct size
-    # @param [Numeric] size
+    # @param [Integer] size
     # @return [size]
     def self.size=(size)
       raise ArgumentError, "Size already set" if defined?(@size) || defined?(@layout)
@@ -203,8 +203,9 @@ module FFI
       #             :field3, :string
       #    end
       def layout(*spec)
-        warn "[DEPRECATION] Struct layout is already defined for class #{self.inspect}. Redefinition as in #{caller[0]} will be disallowed in ffi-2.0." if defined?(@layout)
         return @layout if spec.size == 0
+
+        warn "[DEPRECATION] Struct layout is already defined for class #{self.inspect}. Redefinition as in #{caller[0]} will be disallowed in ffi-2.0." if defined?(@layout)
 
         builder = StructLayoutBuilder.new
         builder.union = self < Union

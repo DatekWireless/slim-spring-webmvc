@@ -5,6 +5,7 @@ require 'concurrent/collection/lock_free_stack'
 require 'concurrent/configuration'
 require 'concurrent/errors'
 require 'concurrent/re_include'
+require 'concurrent/utility/monotonic_time'
 
 module Concurrent
 
@@ -22,7 +23,7 @@ module Concurrent
     #
     # @!macro promises.param.args
     #   @param [Object] args arguments which are passed to the task when it's executed.
-    #     (It might be prepended with other arguments, see the @yeild section).
+    #     (It might be prepended with other arguments, see the @yield section).
     #
     # @!macro promises.shortcut.on
     #   Shortcut of {#$0_on} with default `:io` executor supplied.
@@ -63,8 +64,8 @@ module Concurrent
         resolvable_event_on default_executor
       end
 
-      # Created resolvable event, user is responsible for resolving the event once by
-      # {Promises::ResolvableEvent#resolve}.
+      # Creates a resolvable event, user is responsible for resolving the event once
+      # by calling {Promises::ResolvableEvent#resolve}.
       #
       # @!macro promises.param.default_executor
       # @return [ResolvableEvent]
@@ -94,7 +95,7 @@ module Concurrent
         future_on(default_executor, *args, &task)
       end
 
-      # Constructs new Future which will be resolved after block is evaluated on default executor.
+      # Constructs a new Future which will be resolved after block is evaluated on default executor.
       # Evaluation begins immediately.
       #
       # @!macro promises.param.default_executor
@@ -106,7 +107,7 @@ module Concurrent
         ImmediateEventPromise.new(default_executor).future.then(*args, &task)
       end
 
-      # Creates resolved future with will be either fulfilled with the given value or rejection with
+      # Creates a resolved future with will be either fulfilled with the given value or rejected with
       # the given reason.
       #
       # @param [true, false] fulfilled
@@ -118,7 +119,7 @@ module Concurrent
         ImmediateFuturePromise.new(default_executor, fulfilled, value, reason).future
       end
 
-      # Creates resolved future with will be fulfilled with the given value.
+      # Creates a resolved future which will be fulfilled with the given value.
       #
       # @!macro promises.param.default_executor
       # @param [Object] value
@@ -127,7 +128,7 @@ module Concurrent
         resolved_future true, value, nil, default_executor
       end
 
-      # Creates resolved future with will be rejected with the given reason.
+      # Creates a resolved future which will be rejected with the given reason.
       #
       # @!macro promises.param.default_executor
       # @param [Object] reason
@@ -190,7 +191,7 @@ module Concurrent
         delay_on default_executor, *args, &task
       end
 
-      # Creates new event or future which is resolved only after it is touched,
+      # Creates a new event or future which is resolved only after it is touched,
       # see {Concurrent::AbstractEventFuture#touch}.
       #
       # @!macro promises.param.default_executor
@@ -214,7 +215,7 @@ module Concurrent
         schedule_on default_executor, intended_time, *args, &task
       end
 
-      # Creates new event or future which is resolved in intended_time.
+      # Creates a new event or future which is resolved in intended_time.
       #
       # @!macro promises.param.default_executor
       # @!macro promises.param.intended_time
@@ -240,8 +241,8 @@ module Concurrent
         zip_futures_on default_executor, *futures_and_or_events
       end
 
-      # Creates new future which is resolved after all futures_and_or_events are resolved.
-      # Its value is array of zipped future values. Its reason is array of reasons for rejection.
+      # Creates a new future which is resolved after all futures_and_or_events are resolved.
+      # Its value is an array of zipped future values. Its reason is an array of reasons for rejection.
       # If there is an error it rejects.
       # @!macro promises.event-conversion
       #   If event is supplied, which does not have value and can be only resolved, it's
@@ -262,7 +263,7 @@ module Concurrent
         zip_events_on default_executor, *futures_and_or_events
       end
 
-      # Creates new event which is resolved after all futures_and_or_events are resolved.
+      # Creates a new event which is resolved after all futures_and_or_events are resolved.
       # (Future is resolved when fulfilled or rejected.)
       #
       # @!macro promises.param.default_executor
@@ -280,8 +281,8 @@ module Concurrent
 
       alias_method :any, :any_resolved_future
 
-      # Creates new future which is resolved after first futures_and_or_events is resolved.
-      # Its result equals result of the first resolved future.
+      # Creates a new future which is resolved after the first futures_and_or_events is resolved.
+      # Its result equals the result of the first resolved future.
       # @!macro promises.any-touch
       #   If resolved it does not propagate {Concurrent::AbstractEventFuture#touch}, leaving delayed
       #   futures un-executed if they are not required any more.
@@ -300,9 +301,9 @@ module Concurrent
         any_fulfilled_future_on default_executor, *futures_and_or_events
       end
 
-      # Creates new future which is resolved after first of futures_and_or_events is fulfilled.
-      # Its result equals result of the first resolved future or if all futures_and_or_events reject,
-      # it has reason of the last resolved future.
+      # Creates a new future which is resolved after the first futures_and_or_events is fulfilled.
+      # Its result equals the result of the first resolved future or if all futures_and_or_events reject,
+      # it has reason of the last rejected future.
       # @!macro promises.any-touch
       # @!macro promises.event-conversion
       #
@@ -319,7 +320,7 @@ module Concurrent
         any_event_on default_executor, *futures_and_or_events
       end
 
-      # Creates new event which becomes resolved after first of the futures_and_or_events resolves.
+      # Creates a new event which becomes resolved after the first futures_and_or_events resolves.
       # @!macro promises.any-touch
       #
       # @!macro promises.param.default_executor
@@ -611,7 +612,7 @@ module Concurrent
       #   @yieldparam [Object] value
       #   @yieldparam [Object] reason
       def chain_on(executor, *args, &task)
-        ChainPromise.new_blocked_by1(self, @DefaultExecutor, executor, args, &task).future
+        ChainPromise.new_blocked_by1(self, executor, executor, args, &task).future
       end
 
       # @return [String] Short string representation.
@@ -772,8 +773,17 @@ module Concurrent
         @Lock.synchronize do
           @Waiters.increment
           begin
-            unless resolved?
-              @Condition.wait @Lock, timeout
+            if timeout
+              start = Concurrent.monotonic_time
+              until resolved?
+                break if @Condition.wait(@Lock, timeout) == nil # nil means timeout
+                timeout -= (Concurrent.monotonic_time - start)
+                break if timeout <= 0
+              end
+            else
+              until resolved?
+                @Condition.wait(@Lock, timeout)
+              end
             end
           ensure
             # JRuby may raise ConcurrencyError
@@ -1034,7 +1044,7 @@ module Concurrent
       # @return [Future]
       # @yield [value, *args] to the task.
       def then_on(executor, *args, &task)
-        ThenPromise.new_blocked_by1(self, @DefaultExecutor, executor, args, &task).future
+        ThenPromise.new_blocked_by1(self, executor, executor, args, &task).future
       end
 
       # @!macro promises.shortcut.on
@@ -1052,7 +1062,7 @@ module Concurrent
       # @return [Future]
       # @yield [reason, *args] to the task.
       def rescue_on(executor, *args, &task)
-        RescuePromise.new_blocked_by1(self, @DefaultExecutor, executor, args, &task).future
+        RescuePromise.new_blocked_by1(self, executor, executor, args, &task).future
       end
 
       # @!macro promises.method.zip

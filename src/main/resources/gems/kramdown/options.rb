@@ -39,7 +39,7 @@ module Kramdown
     ALLOWED_TYPES = [String, Integer, Float, Symbol, Boolean, Object]
 
     @options = {}
-    @cached_defaults = nil
+    @defaults = nil
 
     # Define a new option called +name+ (a Symbol) with the given +type+ (String, Integer, Float,
     # Symbol, Boolean, Object), default value +default+ and the description +desc+. If a block is
@@ -55,7 +55,7 @@ module Kramdown
       raise ArgumentError, "Invalid type for default value" if !(type === default) && !default.nil?
       raise ArgumentError, "Missing validator block" if type == Object && block.nil?
       @options[name] = Definition.new(name, type, default, desc, block)
-      @cached_defaults = nil
+      @defaults = nil
     end
 
     # Return all option definitions.
@@ -70,11 +70,12 @@ module Kramdown
 
     # Return a Hash with the default values for all options.
     def self.defaults
-      @cached_defaults ||= begin
-                             temp = {}
-                             @options.each {|_n, o| temp[o.name] = o.default }
-                             temp.freeze
-                           end
+      @defaults ||=
+        begin
+          temp = {}
+          @options.each {|_n, o| temp[o.name] = o.default }
+          temp.freeze
+        end
     end
 
     # Merge the #defaults Hash with the *parsed* options from the given Hash, i.e. only valid option
@@ -140,7 +141,7 @@ module Kramdown
     # Optionally, the array is checked for the correct size.
     def self.simple_array_validator(val, name, size = nil)
       if String === val
-        val = val.split(/,/)
+        val = val.split(",")
       elsif !(Array === val)
         raise Kramdown::Error, "Invalid type #{val.class} for option #{name}"
       end
@@ -233,6 +234,15 @@ module Kramdown
 
       Default: ''
       Used by: HTML/Latex converter
+    EOF
+
+    define(:header_links, Boolean, false, <<~EOF)
+      Adds anchor tags within headers that can be used to generate permalinks
+      when not using a table of contents.
+
+      The anchor tags are empty, but can be styled to your liking.
+
+      Default: false
     EOF
 
     define(:transliterated_header_ids, Boolean, false, <<~EOF)
@@ -350,8 +360,8 @@ module Kramdown
       when String
         if val =~ /^(\d)\.\.(\d)$/
           val = Range.new($1.to_i, $2.to_i).to_a
-        elsif val =~ /^\d(?:,\d)*$/
-          val = val.split(/,/).map(&:to_i).uniq
+        elsif val.match?(/^\d(?:,\d)*$/)
+          val = val.split(",").map(&:to_i).uniq
         else
           raise Kramdown::Error, "Invalid syntax for option toc_levels"
         end
@@ -360,11 +370,11 @@ module Kramdown
           val = val.map(&:to_i).uniq
         end
       when Range
-        if val.eql?(TOC_LEVELS_RANGE)
-          val = TOC_LEVELS_ARRAY
-        else
-          val = val.map(&:to_i).uniq
-        end
+        val = if val.eql?(TOC_LEVELS_RANGE)
+                TOC_LEVELS_ARRAY
+              else
+                val.map(&:to_i).uniq
+              end
       else
         raise Kramdown::Error, "Invalid type #{val.class} for option toc_levels"
       end
@@ -585,6 +595,24 @@ module Kramdown
       Default: ''
       Used by: HTML
     EOF
+
+    define(:footnote_link_text, String, '%s', <<~EOF) do |val|
+      The text used for the footnote number in a footnote link
+
+      This option can be used to add additional text to the footnote
+      link. It should be a format string, and is passed the footnote
+      number as the only argument to the format string.
+      e.g. "[footnote %s]" would display as "[footnote 1]".
+
+      Default: '%s'
+      Used by: HTML
+    EOF
+      if !val.include?('%s')
+        raise Kramdown::Error, "option footnote_link_text needs to contain a '%s'"
+      end
+      val
+    end
+
 
     define(:remove_line_breaks_for_cjk, Boolean, false, <<~EOF)
       Specifies whether line breaks should be removed between CJK characters

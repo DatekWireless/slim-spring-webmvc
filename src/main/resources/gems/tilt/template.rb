@@ -57,7 +57,28 @@ module Tilt
     # it should read template data and return as a String. When file is nil,
     # a block is required.
     #
-    # All arguments are optional.
+    # All arguments are optional. The following options are respected and
+    # are used by Tilt::Template itself and not the underlying template
+    # libraries:
+    #
+    # :default_encoding :: Force the encoding of the template to the given
+    #                      encoding.
+    # :skip_compiled_encoding_detection :: Do not scan template code for
+    #                                      an encoding magic comment.
+    # :fixed_locals :: Force a specific method parameter signature, and call
+    #                  the method with a splat of locals, instead of passing
+    #                  the locals hash as a positional argument, and
+    #                  extracting locals from that. Should be a string
+    #                  containing the parameters for the compiled method,
+    #                  surrounded by parentheses.  Can be set to false to
+    #                  disable the scan for embedded fixed locals.
+    # :extract_fixed_locals :: Whether embedded fixed locals should be scanned for
+    #                          and extracted from the template code.
+    # :default_fixed_locals :: Similar to fixed_locals, but lowest priority,
+    #                          only used if :fixed_locals is not provided
+    #                          and no embedded locals are found (or scanned for).
+    # :scope_class :: Force the scope class used for the method.  By default,
+    #                 uses the class of the scope provided to render.
     def initialize(file=nil, line=nil, options=nil)
       @file, @line, @options = nil, 1, nil
 
@@ -69,7 +90,9 @@ module Tilt
 
       @options ||= {}
 
-      set_compiled_method_cache
+      # Force a specific scope class, instead of using the class of the provided
+      # scope as the scope class.
+      @scope_class = @options.delete :scope_class
 
       # Force the encoding of the input data
       @default_encoding = @options.delete :default_encoding
@@ -78,12 +101,19 @@ module Tilt
       # for compiled templates
       @skip_compiled_encoding_detection = @options.delete :skip_compiled_encoding_detection
 
+      # Compiled path to use.  This must be specified as an option if
+      # providing the :scope_class option and using fixed locals,
+      # since template compilation occurs during initialization in that case.
+      if compiled_path = @options.delete(:compiled_path)
+        self.compiled_path = compiled_path
+      end
+
       # load template data and prepare (uses binread to avoid encoding issues)
       @data = block_given? ? yield(self) : read_template_file
 
       if @data.respond_to?(:force_encoding)
         if default_encoding
-          @data = @data.dup if @data.frozen?
+          @data = _dup_string_if_frozen(@data)
           @data.force_encoding(default_encoding)
         end
 
@@ -92,18 +122,16 @@ module Tilt
         end
       end
 
+      set_fixed_locals
       prepare
+      set_compiled_method_cache
     end
 
     # Render the template in the given scope with the locals specified. If a
     # block is given, it is typically available within the template via
     # +yield+.
     def render(scope=nil, locals=nil, &block)
-      current_template = Thread.current[:tilt_current_template]
-      Thread.current[:tilt_current_template] = self
       evaluate(scope || Object.new, locals || EMPTY_HASH, &block)
-    ensure
-      Thread.current[:tilt_current_template] = current_template
     end
 
     # The basename of the template file.
@@ -123,6 +151,11 @@ module Tilt
       @file || '(__TEMPLATE__)'
     end
 
+    # Whether the template uses fixed locals.
+    def fixed_locals?
+      @fixed_locals ? true : false
+    end
+
     # An empty Hash that the template engine can populate with various
     # metadata.
     def metadata
@@ -133,7 +166,14 @@ module Tilt
       end
     end
 
-    # Set the prefix to use for compiled paths.
+    # Set the prefix to use for compiled paths, similar to using the
+    # :compiled_path template option. Note that this only
+    # has affect for future template compilations.  When using the
+    # :scope_class template option, and using fixed_locals, calling
+    # this after the template is created has no effect, since the
+    # template is compiled during initialization in that case. It
+    # is recommended to use the :compiled_path template option
+    # instead of this method in new code.
     def compiled_path=(path)
       if path
         # Use expanded paths when loading, since that is helpful
@@ -149,7 +189,18 @@ module Tilt
     # directly on the scope class, which are much faster to call than
     # Tilt's normal rendering.
     def compiled_method(locals_keys, scope_class=nil)
-      key = [scope_class, locals_keys].freeze
+      if @fixed_locals
+        if @scope_class
+          return @compiled_method
+        else
+          key = scope_class
+        end
+      elsif @scope_class
+        key = locals_keys.dup.freeze
+      else
+        key = [scope_class, locals_keys].freeze
+      end
+
       LOCK.synchronize do
         if meth = @compiled_method[key]
           return meth
@@ -185,7 +236,7 @@ module Tilt
     end
 
     CLASS_METHOD = Kernel.instance_method(:class)
-    USE_BIND_CALL = RUBY_VERSION >= '2.7'
+    USE_BIND_CALL = RUBY_VERSION >= '3'
 
     # Execute the compiled template and return the result string. Template
     # evaluation is guaranteed to be performed in the scope object with the
@@ -194,26 +245,25 @@ module Tilt
     # This method is only used by source generating templates. Subclasses that
     # override render() may not support all features.
     def evaluate(scope, locals, &block)
-      locals_keys = locals.keys
-      locals_keys.sort!{|x, y| x.to_s <=> y.to_s}
-
-      case scope
-      when Object
-        scope_class = Module === scope ? scope : scope.class
+      if @fixed_locals
+        locals_keys = EMPTY_ARRAY
       else
-        # :nocov:
-        scope_class = USE_BIND_CALL ? CLASS_METHOD.bind_call(scope) : CLASS_METHOD.bind(scope).call
-        # :nocov:
+        locals_keys = locals.keys
+        locals_keys.sort!{|x, y| x.to_s <=> y.to_s}
       end
-      method = compiled_method(locals_keys, scope_class)
 
-      if USE_BIND_CALL
-        method.bind_call(scope, locals, &block)
-      # :nocov:
-      else
-        method.bind(scope).call(locals, &block)
-      # :nocov:
+      unless scope_class = @scope_class
+        scope_class = case scope
+        when Object
+          Module === scope ? scope : scope.class
+        else
+          # :nocov:
+          USE_BIND_CALL ? CLASS_METHOD.bind_call(scope) : CLASS_METHOD.bind(scope).call
+          # :nocov:
+        end
       end
+
+      evaluate_method(compiled_method(locals_keys, scope_class), scope, locals, &block)
     end
 
     # Generates all template source by combining the preamble, template, and
@@ -271,6 +321,18 @@ module Tilt
 
     private
 
+    if RUBY_VERSION >= '2.3'
+      def _dup_string_if_frozen(string)
+        +string
+      end
+    # :nocov:
+    else
+      def _dup_string_if_frozen(string)
+        string.frozen? ? string.dup : string
+      end
+    end
+    # :nocov:
+
     def process_arg(arg)
       if arg
         case
@@ -295,7 +357,12 @@ module Tilt
     end
 
     def set_compiled_method_cache
-      @compiled_method = {}
+      @compiled_method = if @fixed_locals && @scope_class
+        # No hash needed, only a single compiled method per template.
+        compile_template_method(EMPTY_ARRAY, @scope_class)
+      else
+        {}
+      end
     end
 
     def local_extraction(local_keys)
@@ -319,9 +386,39 @@ module Tilt
       assignments.join("\n")
     end
 
+    if USE_BIND_CALL
+      def evaluate_method(method, scope, locals, &block)
+        if @fixed_locals
+          method.bind_call(scope, **locals, &block)
+        else
+          method.bind_call(scope, locals, &block)
+        end
+      end
+    # :nocov:
+    else
+      def evaluate_method(method, scope, locals, &block)
+        if @fixed_locals
+          if locals.empty?
+            # Empty keyword splat on Ruby 2.0-2.6 passes empty hash
+            method.bind(scope).call(&block)
+          else
+            method.bind(scope).call(**locals, &block)
+          end
+        else
+          method.bind(scope).call(locals, &block)
+        end
+      end
+    end
+    # :nocov:
+
     def compile_template_method(local_keys, scope_class=nil)
       source, offset = precompiled(local_keys)
-      local_code = local_extraction(local_keys)
+      if @fixed_locals
+        method_args = @fixed_locals
+      else
+        method_args = "(locals)"
+        local_code = local_extraction(local_keys)
+      end
 
       method_name = "__tilt_#{Thread.current.object_id.abs}"
       method_source = String.new
@@ -332,7 +429,7 @@ module Tilt
       end
 
       # Don't indent method source, to avoid indentation warnings when using compiled paths
-      method_source << "::Tilt::TOPOBJECT.class_eval do\ndef #{method_name}(locals)\n#{local_code}\n"
+      method_source << "::Tilt::TOPOBJECT.class_eval do\ndef #{method_name}#{method_args}\n#{local_code}\n"
 
       offset += method_source.count("\n")
       method_source << source
@@ -355,7 +452,11 @@ module Tilt
         path << ".rb"
 
         # Wrap method source in a class block for the scope, so constant lookup works
-        method_source = "class #{scope_class.name}\n#{method_source}\nend"
+        if freeze_string_literals?
+          method_source_prefix = "# frozen-string-literal: true\n"
+          method_source = method_source.sub(/\A# frozen-string-literal: true\n/, '')
+        end
+        method_source = "#{method_source_prefix}class #{scope_class.name}\n#{method_source}\nend"
 
         load_compiled_method(path, method_source)
       else
@@ -385,13 +486,49 @@ module Tilt
       method
     end
 
+    # Set the fixed locals for the template, which may be nil if no fixed locals can
+    # be determined.
+    def set_fixed_locals
+      fixed_locals = @options.delete(:fixed_locals)
+      extract_fixed_locals = @options.delete(:extract_fixed_locals)
+      default_fixed_locals = @options.delete(:default_fixed_locals)
+
+      if fixed_locals.nil?
+        if extract_fixed_locals.nil?
+          extract_fixed_locals = Tilt.extract_fixed_locals
+        end
+
+        if extract_fixed_locals
+          fixed_locals = extract_fixed_locals()
+        end
+
+        if fixed_locals.nil?
+          fixed_locals = default_fixed_locals
+        end
+      end
+
+      @fixed_locals = fixed_locals
+    end
+
+    # Extract fixed locals from the template code string. Should return nil
+    # if there are no fixed locals specified, or a method argument string
+    # surrounded by parentheses if there are fixed locals.  The method
+    # argument string will be used when defining the template method if given.
+    def extract_fixed_locals
+      if @data.is_a?(String) && (match = /\#\s*locals:\s*(\(.*\))/.match(@data))
+        match[1]
+      end
+    end
+
     def extract_encoding(script, &block)
       extract_magic_comment(script, &block) || script.encoding
     end
 
     def extract_magic_comment(script)
-      if script.frozen?
-        script = script.dup
+      was_frozen = script.frozen?
+      script = _dup_string_if_frozen(script)
+
+      if was_frozen
         yield script
       end
 
@@ -413,6 +550,16 @@ module Tilt
     end
   end
 
+  # Static templates are templates that return the same output for every render
+  #
+  # Instead of inheriting from the StaticTemplate class, you will use the .subclass
+  # method with a block which processes @data and returns the transformed value.
+  #
+  # Basic example which transforms the template to uppercase:
+  #
+  #   UppercaseTemplate = Tilt::StaticTemplate.subclass do
+  #     @data.upcase
+  #   end
   class StaticTemplate < Template
     def self.subclass(mime_type: 'text/html', &block)
       Class.new(self) do
@@ -450,6 +597,10 @@ module Tilt
 
     # Do nothing, since compiled method cache is not used.
     def set_compiled_method_cache
+    end
+
+    # Do nothing, since fixed locals are not used.
+    def set_fixed_locals
     end
   end
 end

@@ -29,31 +29,16 @@ module REXML
       (0x10000..0x10FFFF)
     ]
 
-    if String.method_defined? :encode
-      VALID_XML_CHARS = Regexp.new('^['+
-        VALID_CHAR.map { |item|
-          case item
-          when Integer
-            [item].pack('U').force_encoding('utf-8')
-          when Range
-            [item.first, '-'.ord, item.last].pack('UUU').force_encoding('utf-8')
-          end
-        }.join +
-      ']*$')
-    else
-      VALID_XML_CHARS = /^(
-           [\x09\x0A\x0D\x20-\x7E]            # ASCII
-         | [\xC2-\xDF][\x80-\xBF]             # non-overlong 2-byte
-         |  \xE0[\xA0-\xBF][\x80-\xBF]        # excluding overlongs
-         | [\xE1-\xEC\xEE][\x80-\xBF]{2}      # straight 3-byte
-         |  \xEF[\x80-\xBE]{2}                #
-         |  \xEF\xBF[\x80-\xBD]               # excluding U+fffe and U+ffff
-         |  \xED[\x80-\x9F][\x80-\xBF]        # excluding surrogates
-         |  \xF0[\x90-\xBF][\x80-\xBF]{2}     # planes 1-3
-         | [\xF1-\xF3][\x80-\xBF]{3}          # planes 4-15
-         |  \xF4[\x80-\x8F][\x80-\xBF]{2}     # plane 16
-       )*$/nx;
-    end
+    VALID_XML_CHARS = Regexp.new('^['+
+      VALID_CHAR.map { |item|
+        case item
+        when Integer
+          [item].pack('U').force_encoding('utf-8')
+        when Range
+          [item.first, '-'.ord, item.last].pack('UUU').force_encoding('utf-8')
+        end
+      }.join +
+    ']*$')
 
     # Constructor
     # +arg+ if a String, the content is set to the String.  If a Text,
@@ -132,44 +117,54 @@ module REXML
 
       # illegal anywhere
       if !string.match?(VALID_XML_CHARS)
-        if String.method_defined? :encode
-          string.chars.each do |c|
-            case c.ord
-            when *VALID_CHAR
-            else
-              raise "Illegal character #{c.inspect} in raw string #{string.inspect}"
-            end
-          end
-        else
-          string.scan(/[\x00-\x7F]|[\x80-\xBF][\xC0-\xF0]*|[\xC0-\xF0]/n) do |c|
-            case c.unpack('U')
-            when *VALID_CHAR
-            else
-              raise "Illegal character #{c.inspect} in raw string #{string.inspect}"
-            end
+        string.chars.each do |c|
+          case c.ord
+          when *VALID_CHAR
+          else
+            raise "Illegal character #{c.inspect} in raw string #{string.inspect}"
           end
         end
       end
 
-      # context sensitive
-      string.scan(pattern) do
-        if $1[-1] != ?;
-          raise "Illegal character #{$1.inspect} in raw string #{string.inspect}"
-        elsif $1[0] == ?&
-          if $5 and $5[0] == ?#
-            case ($5[1] == ?x ? $5[2..-1].to_i(16) : $5[1..-1].to_i)
-            when *VALID_CHAR
-            else
-              raise "Illegal character #{$1.inspect} in raw string #{string.inspect}"
-            end
-          # FIXME: below can't work but this needs API change.
-          # elsif @parent and $3 and !SUBSTITUTES.include?($1)
-          #   if !doctype or !doctype.entities.has_key?($3)
-          #     raise "Undeclared entity '#{$1}' in raw string \"#{string}\""
-          #   end
-          end
+      pos = 0
+      while (index = string.index(/<|&/, pos))
+        if string[index] == "<"
+          raise "Illegal character \"#{string[index]}\" in raw string #{string.inspect}"
         end
+
+        unless (end_index = string.index(/[^\s];/, index + 1))
+          raise "Illegal character \"#{string[index]}\" in raw string #{string.inspect}"
+        end
+
+        value = string[(index + 1)..end_index]
+        if /\s/.match?(value)
+          raise "Illegal character \"#{string[index]}\" in raw string #{string.inspect}"
+        end
+
+        if value[0] == "#"
+          character_reference = value[1..-1]
+
+          unless (/\A(\d+|x[0-9a-fA-F]+)\z/.match?(character_reference))
+            if character_reference[0] == "x" || character_reference[-1] == "x"
+              raise "Illegal character \"#{string[index]}\" in raw string #{string.inspect}"
+            else
+              raise "Illegal character #{string.inspect} in raw string #{string.inspect}"
+            end
+          end
+
+          case (character_reference[0] == "x" ? character_reference[1..-1].to_i(16) : character_reference[0..-1].to_i)
+          when *VALID_CHAR
+          else
+            raise "Illegal character #{string.inspect} in raw string #{string.inspect}"
+          end
+        elsif !(/\A#{Entity::NAME}\z/um.match?(value))
+          raise "Illegal character \"#{string[index]}\" in raw string #{string.inspect}"
+        end
+
+        pos = end_index + 1
       end
+
+      string
     end
 
     def node_type
@@ -248,7 +243,8 @@ module REXML
     #   u = Text.new( "sean russell", false, nil, true )
     #   u.value   #-> "sean russell"
     def value
-      @unnormalized ||= Text::unnormalize( @string, doctype )
+      @unnormalized ||= Text::unnormalize(@string, doctype,
+                                          entity_expansion_text_limit: document&.entity_expansion_text_limit)
     end
 
     # Sets the contents of this text node.  This expects the text to be
@@ -391,11 +387,12 @@ module REXML
     end
 
     # Unescapes all possible entities
-    def Text::unnormalize( string, doctype=nil, filter=nil, illegal=nil )
+    def Text::unnormalize( string, doctype=nil, filter=nil, illegal=nil, entity_expansion_text_limit: nil )
+      entity_expansion_text_limit ||= Security.entity_expansion_text_limit
       sum = 0
       string.gsub( /\r\n?/, "\n" ).gsub( REFERENCE ) {
         s = Text.expand($&, doctype, filter)
-        if sum + s.bytesize > Security.entity_expansion_text_limit
+        if sum + s.bytesize > entity_expansion_text_limit
           raise "entity expansion has grown too large"
         else
           sum += s.bytesize

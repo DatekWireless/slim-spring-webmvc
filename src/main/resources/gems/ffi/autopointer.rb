@@ -45,14 +45,6 @@ module FFI
     #   @note WARNING: passing a proc _may_ cause your pointer to never be
     #     GC'd, unless you're careful to avoid trapping a reference to the
     #     pointer in the proc. See the test specs for examples.
-    # @overload initialize(pointer) { |p| ... }
-    #   @param pointer [Pointer]
-    #   @yieldparam [Pointer] p +pointer+ passed to the block
-    #   @return [self]
-    #   The passed block will be invoked at GC time.
-    #   @note
-    #     WARNING: passing a block will cause your pointer to never be GC'd.
-    #     This is bad.
     # @overload initialize(pointer)
     #   @param pointer [Pointer]
     #   @return [self]
@@ -75,22 +67,22 @@ module FFI
     #  The last calling idiom (only one parameter) is generally only
     #  going to be useful if you subclass {AutoPointer}, and override
     #  #release, which by default does nothing.
-    def initialize(ptr, proc=nil, &block)
+    def initialize(ptr, proc=nil)
+      raise TypeError, "Invalid pointer" if ptr.nil? || !ptr.kind_of?(Pointer) ||
+          ptr.kind_of?(MemoryPointer) || ptr.kind_of?(AutoPointer)
       super(ptr.type_size, ptr)
-      raise TypeError, "Invalid pointer" if ptr.nil? || !ptr.kind_of?(Pointer) \
-        || ptr.kind_of?(MemoryPointer) || ptr.kind_of?(AutoPointer)
 
       @releaser = if proc
                     if not proc.respond_to?(:call)
                       raise RuntimeError.new("proc must be callable")
                     end
-                    CallableReleaser.new(ptr, proc)
+                    Releaser.new(ptr, proc)
 
                   else
-                    if not self.class.respond_to?(:release)
+                    if not self.class.respond_to?(:release, true)
                       raise RuntimeError.new("no release method defined")
                     end
-                    DefaultReleaser.new(ptr, self.class)
+                    Releaser.new(ptr, self.class.method(:release))
                   end
 
       ObjectSpace.define_finalizer(self, @releaser)
@@ -107,6 +99,7 @@ module FFI
     # @return [Boolean] +autorelease+
     # Set +autorelease+ property. See {Pointer Autorelease section at Pointer}.
     def autorelease=(autorelease)
+      raise FrozenError.new("can't modify frozen #{self.class}") if frozen?
       @releaser.autorelease=(autorelease)
     end
 
@@ -149,23 +142,7 @@ module FFI
       def call(*args)
         release(@ptr) if @autorelease && @ptr
       end
-    end
 
-    # DefaultReleaser is a {Releaser} used when an {AutoPointer} is defined
-    # without Proc or Method. In this case, the pointer to release must be of
-    # a class derived from AutoPointer with a {release} class method.
-    class DefaultReleaser < Releaser
-      # @param [Pointer] ptr
-      # @return [nil]
-      # Release +ptr+ using the {release} class method of its class.
-      def release(ptr)
-        @proc.release(ptr)
-      end
-    end
-
-    # CallableReleaser is a {Releaser} used when an {AutoPointer} is defined with a
-    # Proc or a Method.
-    class CallableReleaser < Releaser
       # Release +ptr+ by using Proc or Method defined at +ptr+
       # {AutoPointer#initialize initialization}.
       #
@@ -182,7 +159,7 @@ module FFI
     # @return [Type::POINTER]
     # @raise {RuntimeError} if class does not implement a +#release+ method
     def self.native_type
-      if not self.respond_to?(:release)
+      if not self.respond_to?(:release, true)
         raise RuntimeError.new("no release method defined for #{self.inspect}")
       end
       Type::POINTER

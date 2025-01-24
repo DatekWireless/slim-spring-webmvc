@@ -39,6 +39,10 @@ module Concurrent
   #   The number of tasks that have been completed by the pool since construction.
   #   @return [Integer] The number of tasks that have been completed by the pool since construction.
 
+  # @!macro thread_pool_executor_method_active_count
+  #   The number of threads that are actively executing tasks.
+  #   @return [Integer] The number of threads that are actively executing tasks.
+
   # @!macro thread_pool_executor_attr_reader_idletime
   #   The number of seconds that a thread may be idle before being reclaimed.
   #   @return [Integer] The number of seconds that a thread may be idle before being reclaimed.
@@ -79,7 +83,7 @@ module Concurrent
   #
   #   This is a no-op on some pool implementation (e.g. the Java one).  The Ruby
   #   pool will auto-prune each time a new job is posted. You will need to call
-  #   this method explicitely in case your application post jobs in bursts (a
+  #   this method explicitly in case your application post jobs in bursts (a
   #   lot of jobs and then nothing for long periods)
 
   # @!macro thread_pool_executor_public_api
