@@ -29,7 +29,7 @@ module LocaleHelper
 
     local_name = LOCALE_MAP[locale.language]
     if local_name
-      return Locale.new(locale.language)
+      return Locale.new(local_name)
     end
     if defined?(SecurityContextHolder)
       user = SecurityContextHolder.context&.authentication&.principal
