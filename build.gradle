@@ -7,8 +7,8 @@ plugins {
 }
 
 group 'no.datek'
-version '1.0.12'
-final String JRUBY_VERSION = '9.4.10.0';
+version '1.0.13'
+final String JRUBY_VERSION = '9.4.11.0';
 
 repositories {
     mavenLocal()
