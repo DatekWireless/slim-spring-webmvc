@@ -126,6 +126,7 @@ module FormHelper
     disabled = opts.delete(:disabled)
     readonly = opts.delete(:readonly)
     required = opts.delete(:required)
+    ignore_password_managers = opts.delete(:ignore_password_managers)
     type = opts.delete(:type) || 'text'
     value = opts.delete(:value)
     placeholder = opts.delete(:placeholder)
@@ -133,7 +134,7 @@ module FormHelper
     html = +""
     field_value = value || object_field_value(object, field_name)
     html << %{<input type="#{type}" name="#{field_name}" id="#{id_name}" value="#{field_value}"}
-    html << %{ #{:disabled if disabled} #{:readonly if readonly} #{:required if required} #{"placeholder='#{placeholder}'" if placeholder}}
+    html << %{ #{:disabled if disabled} #{:readonly if readonly} #{:required if required} #{'data-1p-ignore' if ignore_password_managers} #{"placeholder='#{placeholder}'" if placeholder}}
     opts.each do |key, value|
       html << %{ #{key}="#{value}"}
     end
