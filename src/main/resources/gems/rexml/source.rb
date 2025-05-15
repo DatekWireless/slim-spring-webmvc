@@ -68,8 +68,14 @@ module REXML
       SCANNER_RESET_SIZE = 100000
       PRE_DEFINED_TERM_PATTERNS = {}
       pre_defined_terms = ["'", '"', "<"]
-      pre_defined_terms.each do |term|
-        PRE_DEFINED_TERM_PATTERNS[term] = /#{Regexp.escape(term)}/
+      if StringScanner::Version < "3.1.1"
+        pre_defined_terms.each do |term|
+          PRE_DEFINED_TERM_PATTERNS[term] = /#{Regexp.escape(term)}/
+        end
+      else
+        pre_defined_terms.each do |term|
+          PRE_DEFINED_TERM_PATTERNS[term] = term
+        end
       end
     end
     private_constant :Private
@@ -150,6 +156,14 @@ module REXML
 
     def position=(pos)
       @scanner.pos = pos
+    end
+
+    def peek_byte
+      @scanner.peek_byte
+    end
+
+    def scan_byte
+      @scanner.scan_byte
     end
 
     # @return true if the Source is exhausted

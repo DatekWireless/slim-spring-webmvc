@@ -297,10 +297,11 @@ module REXML
                 raise REXML::ParseException.new(message, @source)
               end
               name = parse_name(base_error_message)
-              if @source.match?(/\s*\[/um, true)
+              @source.match?(/\s*/um, true) # skip spaces
+              if @source.match?("[", true)
                 id = [nil, nil, nil]
                 @document_status = :in_doctype
-              elsif @source.match?(/\s*>/um, true)
+              elsif @source.match?(">", true)
                 id = [nil, nil, nil]
                 @document_status = :after_doctype
                 @source.ensure_buffer
@@ -312,9 +313,10 @@ module REXML
                   # For backward compatibility
                   id[1], id[2] = id[2], nil
                 end
-                if @source.match?(/\s*\[/um, true)
+                @source.match?(/\s*/um, true) # skip spaces
+                if @source.match?("[", true)
                   @document_status = :in_doctype
-                elsif @source.match?(/\s*>/um, true)
+                elsif @source.match?(">", true)
                   @document_status = :after_doctype
                   @source.ensure_buffer
                 else
@@ -378,7 +380,7 @@ module REXML
               md = @source.match(Private::ATTLISTDECL_END, true)
               raise REXML::ParseException.new( "Bad ATTLIST declaration!", @source ) if md.nil?
               element = md[1]
-              contents = md[0]
+              contents = "<!ATTLIST" + md[0]
 
               pairs = {}
               values = md[0].strip.scan( ATTDEF_RE )
@@ -409,7 +411,8 @@ module REXML
               id = parse_id(base_error_message,
                             accept_external_id: true,
                             accept_public_id: true)
-              unless @source.match?(/\s*>/um, true)
+              @source.match?(/\s*/um, true) # skip spaces
+              unless @source.match?(">", true)
                 message = "#{base_error_message}: garbage before end >"
                 raise REXML::ParseException.new(message, @source)
               end
@@ -766,6 +769,25 @@ module REXML
         [:processing_instruction, name, content]
       end
 
+      if StringScanner::Version < "3.1.1"
+        def scan_quote
+          @source.match(/(['"])/, true)&.[](1)
+        end
+      else
+        def scan_quote
+          case @source.peek_byte
+          when 34 # '"'.ord
+            @source.scan_byte
+            '"'
+          when 39 # "'".ord
+            @source.scan_byte
+            "'"
+          else
+            nil
+          end
+        end
+      end
+
       def parse_attributes(prefixes)
         attributes = {}
         expanded_names = {}
@@ -785,11 +807,10 @@ module REXML
               message = "Missing attribute equal: <#{name}>"
               raise REXML::ParseException.new(message, @source)
             end
-            unless match = @source.match(/(['"])/, true)
+            unless quote = scan_quote
               message = "Missing attribute value start quote: <#{name}>"
               raise REXML::ParseException.new(message, @source)
             end
-            quote = match[1]
             start_position = @source.position
             value = @source.read_until(quote)
             unless value.chomp!(quote)
