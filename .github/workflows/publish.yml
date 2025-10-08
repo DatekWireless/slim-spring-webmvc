@@ -59,6 +59,15 @@ jobs:
           OSSRH_PASSWORD: ${{secrets.OSSRH_PASSWORD}}
 
       # Step 8
+      - name: Trigger Maven Central Deployment
+        run: | 
+          curl -X 'POST' \
+            'https://ossrh-staging-api.central.sonatype.com/manual/upload/defaultRepository/no.datek' \
+            -H 'accept: */*' \
+            -H 'Authorization: Bearer ${{ secrets.OSSRH_GPG_SECRET_KEY }}' \
+            -d ''
+
+      # Step 9
       # Optional step, will enable you to see what you have released as well here on GitHub
       # - name: Upload Artifacts
       #   uses: actions/upload-artifact@v4
@@ -66,3 +75,5 @@ jobs:
       #     name: release-build-libs
       #     path: build/libs
       #     retention-days: 3
+
+
