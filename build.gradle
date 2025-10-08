@@ -7,7 +7,7 @@ plugins {
 }
 
 group 'no.datek'
-version '1.1.0'
+version '1.1.1'
 final String JRUBY_VERSION = '10.0.2.0';
 
 repositories {
@@ -42,10 +42,10 @@ ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 publishing {
     repositories {
         maven {
-            def releaseRepo = "https://s01.oss.sonatype.org/content/repositories/releases/"
+            def releaseRepo = "https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/"
             def snapshotRepo = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
 
-            name = "OSSRH"
+            name = "ossrh-staging-api"
             url = isReleaseVersion ? releaseRepo : snapshotRepo
 
             credentials {
