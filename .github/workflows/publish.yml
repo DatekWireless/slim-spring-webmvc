@@ -64,7 +64,7 @@ jobs:
           curl -X 'POST' \
             'https://ossrh-staging-api.central.sonatype.com/manual/upload/defaultRepository/no.datek' \
             -H 'accept: */*' \
-            -H 'Authorization: Bearer ${{ secrets.OSSRH_GPG_SECRET_KEY }}' \
+            -H 'Authorization: Bearer ${{ secrets.OSSRH_USERNAME_PASS_BASE64 }}' \
             -d ''
 
       # Step 9
