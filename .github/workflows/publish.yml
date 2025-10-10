@@ -45,6 +45,9 @@ jobs:
       - name: Change wrapper permissions
         run: chmod +x ./gradlew
 
+      - name: Generate JReleaser configuration
+        run: ./gradlew jreleaserConfig
+
       # Step 6
       - name: Publish artifacts locally with Gradle
         env:
@@ -61,7 +64,7 @@ jobs:
       - name: Run JReleaser
         uses: jreleaser/release-action@v2
         with:
-          arguments: full-release
+          arguments: --config-file out/jreleaser/jreleaser.yml full-release
         env:
           JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           JRELEASER_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
