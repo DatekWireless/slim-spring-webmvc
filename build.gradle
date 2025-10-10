@@ -1,9 +1,9 @@
 plugins {
-    id 'java'
-    id "io.spring.dependency-management" version "1.1.5"
-    id "org.springframework.boot" version "3.3.4"
-    id 'maven-publish'
-    id 'signing'
+  id 'java-library'
+  id "io.spring.dependency-management" version "1.1.5"
+  id "org.springframework.boot" version "3.3.4"
+  id 'maven-publish'
+  id 'org.jreleaser' version '1.20.0'
 }
 
 group 'no.datek'
@@ -11,81 +11,82 @@ version '1.1.9.4'
 final String JRUBY_VERSION = '10.0.2.0';
 
 repositories {
-    mavenLocal()
-    mavenCentral()
+  mavenLocal()
+  mavenCentral()
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation "org.jruby:jruby:$JRUBY_VERSION"
+  implementation 'org.springframework.boot:spring-boot-starter-web'
+  implementation "org.jruby:jruby:$JRUBY_VERSION"
 }
 
 java {
-    withJavadocJar()
-    withSourcesJar()
+  withJavadocJar()
+  withSourcesJar()
 }
 
 test {
-    useJUnitPlatform()
+  useJUnitPlatform()
 }
-
-artifacts {
-    archives javadocJar, sourcesJar
-}
-
-signing {
-    sign configurations.archives
-}
-
-ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
 publishing {
-    repositories {
-        maven {
-            def releaseRepo = "https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/"
-            def snapshotRepo = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+  publications {
+    maven(MavenPublication) {
+      groupId = 'no.datek'
+      artifactId = 'slim-spring-webmvc'
+      from components.java
 
-            name = "ossrh-staging-api"
-            url = isReleaseVersion ? releaseRepo : snapshotRepo
-
-            credentials {
-                username = findProperty("ossrhUsername") ?: System.getenv("OSSRH_USERNAME")
-                password = findProperty("ossrhPassword") ?: System.getenv("OSSRH_PASSWORD")
-            }
+      pom {
+        name = 'slim-spring-webmvc'
+        description = 'Add https://github.com/slim-template/slim as a template engine to Spring WebMVC.'
+        url = 'https://github.com/DatekWireless/slim-spring-webmvc'
+        inceptionYear = '2023'
+        licenses {
+          license {
+            name = 'MIT License'
+            url = 'https://mit-license.org/'
+          }
         }
-    }
-    publications {
-        maven(MavenPublication) {
-            groupId = 'no.datek'
-            from components.java
 
-            pom {
-                name = 'slim-spring-webmvc'
-                description = 'Add https://github.com/slim-template/slim as a template engine to Spring WebMVC.'
-                url = 'https://github.com/DatekWireless/slim-spring-webmvc'
-
-                licenses {
-                    license {
-                        name = 'MIT License'
-                        url = 'https://mit-license.org/'
-                    }
-                }
-
-                scm {
-                    url = 'https://github.com/DatekWireless/slim-spring-webmvc'
-                    connection = 'scm:git://github.com:DatekWireless/slim-spring-webmvc.git'
-                    developerConnection = 'scm:git://github.com:DatekWireless/slim-spring-webmvc.git'
-                }
-
-                developers {
-                    developer {
-                        id = 'UweKubosch'
-                        name = 'Uwe Kubosch'
-                        email = 'uwe@datek.no'
-                        organizationUrl = 'https://datek.no/'
-                    }
-                }
-            }
+        scm {
+          url = 'https://github.com/DatekWireless/slim-spring-webmvc'
+          connection = 'scm:git://github.com:DatekWireless/slim-spring-webmvc.git'
+          developerConnection = 'scm:git://github.com:DatekWireless/slim-spring-webmvc.git'
         }
+
+        developers {
+          developer {
+            id = 'UweKubosch'
+            name = 'Uwe Kubosch'
+            email = 'uwe@datek.no'
+            organizationUrl = 'https://datek.no/'
+          }
+        }
+      }
     }
+  }
+  repositories {
+    maven {
+      url = layout.buildDirectory.dir('staging-deploy')
+    }
+  }
+}
+
+
+jreleaser {
+  signing {
+    active = 'ALWAYS'
+    armored = true
+  }
+  deploy {
+    maven {
+      mavenCentral {
+        sonatype {
+          active = 'ALWAYS'
+          url = 'https://central.sonatype.com/api/v1/publisher'
+          stagingRepository('build/staging-deploy')
+        }
+      }
+    }
+  }
 }
