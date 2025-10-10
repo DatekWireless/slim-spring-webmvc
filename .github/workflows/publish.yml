@@ -56,6 +56,10 @@ jobs:
           JRELEASER_GPG_SECRET_KEY: ${{ secrets.GPG_SECRET_KEY }}
           JRELEASER_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
+
+      - name: Publish to local staging directory
+        run: ./gradlew publish --info
+
       # Step 6
       - name: Publish artifacts locally with Gradle
         env:
