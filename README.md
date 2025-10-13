@@ -48,6 +48,7 @@ Run the provided script:
 * Enter the tag for the new version, e.g. "v1.0.2" and **press enter**.
 * Click on "Publish release"
 * This will trigger a release on https://github.com/DatekWireless/slim-spring-webmvc/actions
-* The release is built and published to Maven Central at
-  https://s01.oss.sonatype.org/#nexus-search;quick~no.datek
-* The new package will be available after about 10 minutes.
+* The release is built and published to Maven Central at:
+  * https://central.sonatype.com/artifact/no.datek/slim-spring-webmvc
+  * https://s01.oss.sonatype.org/#nexus-search;quick~no.datek
+* The new package will be available after about 20 minutes.
