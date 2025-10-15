@@ -184,7 +184,7 @@ module FormHelper
     if prepend
       [*prepend].compact.each do |addon|
         if addon=~ /\A<\w.*/
-          html << addon #add tag as is
+          html << addon # add tag as is
         else
           html << %{<span class="input-group-text">#{addon}</span>}
         end
