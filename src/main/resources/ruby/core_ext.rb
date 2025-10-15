@@ -26,3 +26,7 @@ end
 class String
   def blank? = strip.empty?
 end
+
+class SomeClass
+  def blank? = false
+end
