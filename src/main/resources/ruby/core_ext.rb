@@ -3,6 +3,10 @@ class Object
 
   def blank? = false
 
+  def presence
+    present? ? self : nil
+  end
+
   def try(method, *args)
     return nil unless self.respond_to?(method)
     send(method, *args)

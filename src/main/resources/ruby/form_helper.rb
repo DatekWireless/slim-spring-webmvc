@@ -167,6 +167,7 @@ module FormHelper
     label = opts.delete(:label) || "#{message[label_key]}#{label_suffix}"
     label_class = opts.delete(:label_class) || 'form-label'
     label_style = opts.delete(:label_style)
+    prepend = opts.delete(:prepend)
     append = opts.delete(:append)
     wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : WRAPPER_CLASS
     required = opts[:required]
@@ -179,18 +180,27 @@ module FormHelper
       html << %{ style="#{label_style}"} if label_style
       html << %{>#{label}</label> }
     end
-    html << %{<div class="input-group flex-nowrap" >} if append
-    html << text_input(object, field_name, class: classes, no_break: true, **opts)
-    if append
-      [*append].compact.each do |addon|
-        if addon.start_with?('<')
-          html << addon
+    html << %{<div class="input-group flex-nowrap" >} if append || prepend
+    if prepend
+      [*prepend].compact.each do |addon|
+        if addon=~ /\A<\w.*/
+          html << addon #add tag as is
         else
           html << %{<span class="input-group-text">#{addon}</span>}
         end
       end
-      html << '</div>'
     end
+    html << text_input(object, field_name, class: classes, no_break: true, **opts)
+    if append
+      [*append].compact.each do |addon|
+        if addon=~ /\A<\w.*/
+          html << addon #add tag as is
+        else
+          html << %{<span class="input-group-text">#{addon}</span>}
+        end
+      end
+    end
+    html << '</div>' if append || prepend
     if wrapper_class.present?
       html = <<~HTML
         <div class="#{wrapper_class}">#{html}</div>
