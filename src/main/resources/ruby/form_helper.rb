@@ -310,7 +310,7 @@ module FormHelper
       if field_value.blank? && prompt
         html << %{<option value="">#{TrueClass === prompt ? message['pleaseSelect'] : CGI.escapeHTML(prompt.to_s)}</option>}
       elsif include_blank
-        html << %{<option value="">#{TrueClass === include_blank ? "" : CGI.escapeHTML(include_blank.to_s)}</option>}
+        html << %{<option value="">#{TrueClass === include_blank ? "&nbsp;" : CGI.escapeHTML(include_blank.to_s)}</option>}
       end
     end
 
