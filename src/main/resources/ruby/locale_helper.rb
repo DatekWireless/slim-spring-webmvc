@@ -12,6 +12,7 @@ module LocaleHelper
   SUPPORTED_LOCALES = {
     "nb" => "text.language.norwegian",
     "en" => "text.language.english",
+    "fi" => "text.language.finnish",
     "sv" => "text.language.swedish",
     "iw" => "text.language.hebrew",
   }.freeze
