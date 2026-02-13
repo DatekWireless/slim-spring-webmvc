@@ -17,15 +17,15 @@ end
 BigDecimal.prepend BigDecimalExt
 
 module FloatExt
-  def to_fs(localize = false)
+  def to_s(localize = true)
     if localize
       java.text.NumberFormat.getInstance(Thread.current[:locale]).format(self)
     end
     return super()
   end
 
-  def to_s
-    to_fs(true)
+  def to_fs
+    to_s(false)
   end
 end
 Float.prepend FloatExt
