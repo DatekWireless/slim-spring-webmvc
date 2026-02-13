@@ -95,7 +95,9 @@ module REXML
       @entity_expansion_text_limit = Security.entity_expansion_text_limit
       super()
       @context = context
-      return if source.nil?
+      # `source = ""` is an invalid usage because no root element XML is an invalid XML.
+      # But we accept `""` for backward compatibility.
+      return if source.nil? or source == ""
       if source.kind_of? Document
         @context = source.context
         super source
@@ -309,8 +311,8 @@ module REXML
     end
 
     # :call-seq:
-    #    doc.write(output=$stdout, indent=-1, transtive=false, ie_hack=false, encoding=nil)
-    #    doc.write(options={:output => $stdout, :indent => -1, :transtive => false, :ie_hack => false, :encoding => nil})
+    #    doc.write(output=$stdout, indent=-1, transitive=false, ie_hack=false, encoding=nil)
+    #    doc.write(options={:output => $stdout, :indent => -1, :transitive => false, :ie_hack => false, :encoding => nil})
     #
     # Write the XML tree out, optionally with indent.  This writes out the
     # entire XML document, including XML declarations, doctype declarations,
@@ -415,7 +417,7 @@ module REXML
     #
     # Deprecated. Use REXML::Security.entity_expansion_limit= instead.
     def Document::entity_expansion_limit
-      return Security.entity_expansion_limit
+      Security.entity_expansion_limit
     end
 
     # Set the entity expansion limit. By default the limit is set to 10240.
@@ -429,7 +431,7 @@ module REXML
     #
     # Deprecated. Use REXML::Security.entity_expansion_text_limit instead.
     def Document::entity_expansion_text_limit
-      return Security.entity_expansion_text_limit
+      Security.entity_expansion_text_limit
     end
 
     attr_reader :entity_expansion_count
@@ -448,6 +450,20 @@ module REXML
     end
 
     private
+
+    attr_accessor :namespaces_cache
+
+    # New document level cache is created and available in this block.
+    # This API is thread unsafe. Users can't change this document in this block.
+    def enable_cache
+      @namespaces_cache = {}
+      begin
+        yield
+      ensure
+        @namespaces_cache = nil
+      end
+    end
+
     def build( source )
       Parsers::TreeParser.new( source, self ).parse
     end

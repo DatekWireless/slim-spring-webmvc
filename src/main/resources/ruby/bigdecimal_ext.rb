@@ -15,7 +15,20 @@ module BigDecimalExt
   end
 end
 BigDecimal.prepend BigDecimalExt
-Float.prepend BigDecimalExt
+
+module FloatExt
+  def to_fs(localize = false)
+    if localize
+      java.text.NumberFormat.getInstance(Thread.current[:locale]).format(self)
+    end
+    return super()
+  end
+
+  def to_s
+    to_fs(true)
+  end
+end
+Float.prepend FloatExt
 
 class Java::JavaMath::BigDecimal
   def to_bd

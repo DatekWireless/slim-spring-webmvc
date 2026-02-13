@@ -119,8 +119,8 @@ module Tilt
   #     # => RDiscount::Template
   #
   # In the previous example we say that RDiscount has a *higher priority* than
-  # Kramdown. Tilt will first try to `require "rdiscount/template"`, falling
-  # back to `require "kramdown/template"`. If none of these are successful,
+  # Kramdown. Tilt will first try to <tt>require "rdiscount/template"</tt>, falling
+  # back to <tt>require "kramdown/template"</tt>. If none of these are successful,
   # the first error will be raised.
   class Mapping < BaseMapping
     LOCK = Mutex.new
@@ -237,7 +237,7 @@ module Tilt
     #                             :templates=>['erb', 'scss'])
     def register_pipeline(ext, options=EMPTY_HASH)
       templates = options[:templates] || ext.split('.').reverse
-      templates = templates.map{|t| [self[t], options[t] || EMPTY_HASH]}
+      templates = templates.map{|t| [self[t], t, options[t] || EMPTY_HASH]}
 
       klass = Class.new(Pipeline)
       klass.send(:const_set, :TEMPLATES, templates)
@@ -346,13 +346,13 @@ module Tilt
     end
 
     # The proper behavior (in MRI) for autoload? is to
-    # return `false` when the constant/file has been
+    # return <tt>false</tt> when the constant/file has been
     # explicitly required.
     #
-    # However, in JRuby it returns `true` even after it's
-    # been required. In that case it turns out that `defined?`
-    # returns `"constant"` if it exists and `nil` when it doesn't.
-    # This is actually a second bug: `defined?` should resolve
+    # However, in JRuby it returns <tt>true</tt> even after it's
+    # been required. In that case it turns out that <tt>defined?</tt>
+    # returns <tt>"constant"</tt> if it exists and <tt>nil</tt> when it doesn't.
+    # This is actually a second bug: <tt>defined?</tt> should resolve
     # autoload (aka. actually try to require the file).
     #
     # We use the second bug in order to resolve the first bug.

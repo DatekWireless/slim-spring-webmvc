@@ -26,7 +26,7 @@ module REXML
     #   REXML::Formatters package for changing the output style.
     def to_s indent=nil
       unless indent.nil?
-        Kernel.warn( "#{self.class.name}.to_s(indent) parameter is deprecated", uplevel: 1)
+        Kernel.warn( "#{self.class.name}#to_s(indent) parameter is deprecated", uplevel: 1)
         f = REXML::Formatters::Pretty.new( indent )
         f.write( self, rv = "" )
       else
@@ -68,7 +68,7 @@ module REXML
       each_recursive {|node|
         return node if block.call(node)
       }
-      return nil
+      nil
     end
 
     # Returns the position that +self+ holds in its parent's array, indexed

@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require 'thread'
 require 'listen/record/entry'
 require 'listen/record/symlink_detector'
 
@@ -73,7 +72,7 @@ module Listen
     private
 
     def empty_dirname?(dirname)
-      dirname == '.' || dirname == ''
+      ['.', ''].include?(dirname)
     end
 
     def reset_tree

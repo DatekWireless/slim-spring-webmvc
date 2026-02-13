@@ -76,19 +76,32 @@ module REXML
       @variables = vars
     end
 
-    def parse path, nodeset
+    def parse path, node
       path_stack = @parser.parse( path )
-      match( path_stack, nodeset )
+      if node.is_a?(Array)
+        Kernel.warn("REXML::XPath.each, REXML::XPath.first, REXML::XPath.match dropped support for nodeset...", uplevel: 1)
+        return [] if node.empty?
+        node = node.first
+      end
+
+      document = node.document
+      if document
+        document.__send__(:enable_cache) do
+          match( path_stack, node )
+        end
+      else
+        match( path_stack, node )
+      end
     end
 
-    def get_first path, nodeset
+    def get_first path, node
       path_stack = @parser.parse( path )
-      first( path_stack, nodeset )
+      first( path_stack, node )
     end
 
-    def predicate path, nodeset
+    def predicate path, node
       path_stack = @parser.parse( path )
-      match( path_stack, nodeset )
+      match( path_stack, node )
     end
 
     def []=( variable_name, value )
@@ -106,7 +119,7 @@ module REXML
       case path[0]
       when :document
         # do nothing
-        return first( path[1..-1], node )
+        first( path[1..-1], node )
       when :child
         for c in node.children
           r = first( path[1..-1], c )
@@ -116,9 +129,9 @@ module REXML
         name = path[2]
         if node.name == name
           return node if path.size == 3
-          return first( path[3..-1], node )
+          first( path[3..-1], node )
         else
-          return nil
+          nil
         end
       when :descendant_or_self
         r = first( path[1..-1], node )
@@ -128,23 +141,21 @@ module REXML
           return r if r
         end
       when :node
-        return first( path[1..-1], node )
+        first( path[1..-1], node )
       when :any
-        return first( path[1..-1], node )
+        first( path[1..-1], node )
+      else
+        nil
       end
-      return nil
     end
 
 
-    def match(path_stack, nodeset)
-      nodeset = nodeset.collect.with_index do |node, i|
-        position = i + 1
-        XPathNode.new(node, position: position)
-      end
+    def match(path_stack, node)
+      nodeset = [XPathNode.new(node, position: 1)]
       result = expr(path_stack, nodeset)
       case result
       when Array # nodeset
-        unnode(result)
+        unnode(result).uniq
       else
         [result]
       end
@@ -162,10 +173,10 @@ module REXML
     #  2. If no mapping was supplied, use the context node to look up the namespace
     def get_namespace( node, prefix )
       if @namespaces
-        return @namespaces[prefix] || ''
+        @namespaces[prefix] || ''
       else
         return node.namespace( prefix ) if node.node_type == :element
-        return ''
+        ''
       end
     end
 
@@ -492,14 +503,10 @@ module REXML
                 if strict?
                   raw_node.name == name and raw_node.namespace == ""
                 else
-                  # FIXME: This DOUBLES the time XPath searches take
-                  ns = get_namespace(raw_node, prefix)
-                  raw_node.name == name and raw_node.namespace == ns
+                  raw_node.name == name and raw_node.namespace == get_namespace(raw_node, prefix)
                 end
               else
-                # FIXME: This DOUBLES the time XPath searches take
-                ns = get_namespace(raw_node, prefix)
-                raw_node.name == name and raw_node.namespace == ns
+                raw_node.name == name and raw_node.namespace == get_namespace(raw_node, prefix)
               end
             when :attribute
               if prefix.nil?
@@ -507,9 +514,7 @@ module REXML
               elsif prefix.empty?
                 raw_node.name == name and raw_node.namespace == ""
               else
-                # FIXME: This DOUBLES the time XPath searches take
-                ns = get_namespace(raw_node.element, prefix)
-                raw_node.name == name and raw_node.namespace == ns
+                raw_node.name == name and raw_node.namespace == get_namespace(raw_node.element, prefix)
               end
             else
               false
@@ -671,7 +676,7 @@ module REXML
         if order == :forward
           index
         else
-          -index
+          index.map(&:-@)
         end
       end
       ordered.collect do |_index, node|
@@ -758,22 +763,19 @@ module REXML
     end
 
     def following_node_of( node )
-      if node.kind_of? Element and node.children.size > 0
-        return node.children[0]
-      end
-      return next_sibling_node(node)
+      return node.children[0] if node.kind_of?(Element) and node.children.size > 0
+
+      next_sibling_node(node)
     end
 
     def next_sibling_node(node)
       psn = node.next_sibling_node
       while psn.nil?
-        if node.parent.nil? or node.parent.class == Document
-          return nil
-        end
+        return nil if node.parent.nil? or node.parent.class == Document
         node = node.parent
         psn = node.next_sibling_node
       end
-      return psn
+      psn
     end
 
     def child(nodeset)
@@ -806,13 +808,13 @@ module REXML
     def norm b
       case b
       when true, false
-        return b
+        b
       when 'true', 'false'
-        return Functions::boolean( b )
+        Functions::boolean( b )
       when /^\d+(\.\d+)?$/, Numeric
-        return Functions::number( b )
+        Functions::number( b )
       else
-        return Functions::string( b )
+        Functions::string( b )
       end
     end
 

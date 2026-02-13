@@ -130,10 +130,7 @@ module REXML
     end
 
     def doctype
-      if @element
-        doc = @element.document
-        doc.doctype if doc
-      end
+      @element&.document&.doctype
     end
 
     # Returns the attribute value, with entities replaced
@@ -173,7 +170,7 @@ module REXML
       @element = element
 
       if @normalized
-        Text.check( @normalized, NEEDS_A_SECOND_CHECK, doctype )
+        Text.check( @normalized, NEEDS_A_SECOND_CHECK )
       end
 
       self
@@ -202,9 +199,11 @@ module REXML
     end
 
     def xpath
-      path = @element.xpath
-      path += "/@#{self.expanded_name}"
-      return path
+      @element.xpath + "/@#{self.expanded_name}"
+    end
+
+    def document
+      @element&.document
     end
   end
 end

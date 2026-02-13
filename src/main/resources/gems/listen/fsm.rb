@@ -2,8 +2,6 @@
 
 # Code copied from https://github.com/celluloid/celluloid-fsm
 
-require 'thread'
-
 module Listen
   module FSM
     # Included hook to extend class methods
@@ -38,7 +36,7 @@ module Listen
       end
     end
 
-    # Note: including classes must call initialize_fsm from their initialize method.
+    # NOTE: including classes must call initialize_fsm from their initialize method.
     def initialize_fsm
       @fsm_initialized = true
       @state = self.class.start_state

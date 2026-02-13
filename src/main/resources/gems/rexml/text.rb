@@ -104,16 +104,16 @@ module REXML
       @entity_filter = entity_filter if entity_filter
       clear_cache
 
-      Text.check(@string, illegal, doctype) if @raw
+      Text.check(@string, illegal) if @raw
     end
 
     def parent= parent
       super(parent)
-      Text.check(@string, NEEDS_A_SECOND_CHECK, doctype) if @raw and @parent
+      Text.check(@string, NEEDS_A_SECOND_CHECK) if @raw and @parent
     end
 
     # check for illegal characters
-    def Text.check string, pattern, doctype
+    def Text.check string, pattern, doctype = nil
 
       # illegal anywhere
       if !string.match?(VALID_XML_CHARS)
@@ -177,7 +177,7 @@ module REXML
 
 
     def clone
-      return Text.new(self, true)
+      Text.new(self, true)
     end
 
 
@@ -200,10 +200,7 @@ module REXML
     end
 
     def doctype
-      if @parent
-        doc = @parent.document
-        doc.doctype if doc
-      end
+      @parent&.document&.doctype
     end
 
     REFERENCE = /#{Entity::REFERENCE}/
@@ -264,30 +261,32 @@ module REXML
       # Recursively wrap string at width.
       return string if string.length <= width
       place = string.rindex(' ', width) # Position in string with last ' ' before cutoff
-      if addnewline then
-        return "\n" + string[0,place] + "\n" + wrap(string[place+1..-1], width)
+      if addnewline
+        "\n" + string[0,place] + "\n" + wrap(string[place+1..-1], width)
       else
-        return string[0,place] + "\n" + wrap(string[place+1..-1], width)
+        string[0,place] + "\n" + wrap(string[place+1..-1], width)
       end
     end
 
     def indent_text(string, level=1, style="\t", indentfirstline=true)
+      Kernel.warn("#{self.class.name}#indent_text is deprecated. See REXML::Formatters", uplevel: 1)
       return string if level < 0
-      new_string = ''
+
+      new_string = +''
       string.each_line { |line|
         indent_string = style * level
         new_line = (indent_string + line).sub(/[\s]+$/,'')
         new_string << new_line
       }
       new_string.strip! unless indentfirstline
-      return new_string
+      new_string
     end
 
     # == DEPRECATED
     # See REXML::Formatters
     #
     def write( writer, indent=-1, transitive=false, ie_hack=false )
-      Kernel.warn("#{self.class.name}.write is deprecated.  See REXML::Formatters", uplevel: 1)
+      Kernel.warn("#{self.class.name}#write is deprecated.  See REXML::Formatters", uplevel: 1)
       formatter = if indent > -1
           REXML::Formatters::Pretty.new( indent )
         else
@@ -299,9 +298,7 @@ module REXML
     # FIXME
     # This probably won't work properly
     def xpath
-      path = @parent.xpath
-      path += "/text()"
-      return path
+      @parent.xpath + "/text()"
     end
 
     # Writes out text, substituting special characters beforehand.

@@ -473,8 +473,7 @@ module REXML
     # Related: #root, #root_node.
     #
     def document
-      rt = root
-      rt.parent if rt
+      root&.parent
     end
 
     # :call-seq:
@@ -566,7 +565,7 @@ module REXML
       prefixes = []
       prefixes = parent.prefixes if parent
       prefixes |= attributes.prefixes
-      return prefixes
+      prefixes
     end
 
     # :call-seq:
@@ -589,10 +588,12 @@ module REXML
     #   d.elements['//c'].namespaces # => {"x"=>"1", "y"=>"2", "z"=>"3"}
     #
     def namespaces
-      namespaces = {}
-      namespaces = parent.namespaces if parent
-      namespaces = namespaces.merge( attributes.namespaces )
-      return namespaces
+      namespaces_cache = document&.__send__(:namespaces_cache)
+      if namespaces_cache
+        namespaces_cache[self] ||= calculate_namespaces
+      else
+        calculate_namespaces
+      end
     end
 
     # :call-seq:
@@ -619,19 +620,11 @@ module REXML
       if prefix.nil?
         prefix = prefix()
       end
-      if prefix == ''
-        prefix = "xmlns"
-      else
-        prefix = "xmlns:#{prefix}" unless prefix[0,5] == 'xmlns'
-      end
-      ns = nil
-      target = self
-      while ns.nil? and target
-        ns = target.attributes[prefix]
-        target = target.parent
-      end
+      prefix = (prefix == '') ? 'xmlns' : prefix.delete_prefix("xmlns:")
+      ns = namespaces[prefix]
+
       ns = '' if ns.nil? and prefix == 'xmlns'
-      return ns
+      ns
     end
 
     # :call-seq:
@@ -963,7 +956,7 @@ module REXML
     def next_element
       element = next_sibling
       element = element.next_sibling until element.nil? or element.kind_of? Element
-      return element
+      element
     end
 
     # :call-seq:
@@ -979,7 +972,7 @@ module REXML
     def previous_element
       element = previous_sibling
       element = element.previous_sibling until element.nil? or element.kind_of? Element
-      return element
+      element
     end
 
 
@@ -1029,8 +1022,7 @@ module REXML
     #
     def text( path = nil )
       rv = get_text(path)
-      return rv.value unless rv.nil?
-      nil
+      rv&.value
     end
 
     # :call-seq:
@@ -1058,7 +1050,7 @@ module REXML
       else
         rv = @children.find { |node| node.kind_of? Text }
       end
-      return rv
+      rv
     end
 
     # :call-seq:
@@ -1102,7 +1094,7 @@ module REXML
           old_text.replace_with( text )
         end
       end
-      return self
+      self
     end
 
     # :call-seq:
@@ -1153,7 +1145,7 @@ module REXML
         text = Text.new( text, whitespace(), nil, raw() )
       end
       self << text unless text.nil?
-      return self
+      self
     end
 
     # :call-seq:
@@ -1197,7 +1189,7 @@ module REXML
         cur = cur.parent
         path_elements << __to_xpath_helper( cur )
       end
-      return path_elements.reverse.join( "/" )
+      path_elements.reverse.join( "/" )
     end
 
     #################################################
@@ -1299,7 +1291,6 @@ module REXML
       return nil unless ( namespaces[ prefix ] == namespaces[ 'xmlns' ] )
 
       attributes.get_attribute( name )
-
     end
 
     # :call-seq:
@@ -1313,7 +1304,7 @@ module REXML
     #   b.has_attributes? # => false
     #
     def has_attributes?
-      return !@attributes.empty?
+      !@attributes.empty?
     end
 
     # :call-seq:
@@ -1502,7 +1493,7 @@ module REXML
     #  doc.write( out )     #-> doc is written to the string 'out'
     #  doc.write( $stdout ) #-> doc written to the console
     def write(output=$stdout, indent=-1, transitive=false, ie_hack=false)
-      Kernel.warn("#{self.class.name}.write is deprecated.  See REXML::Formatters", uplevel: 1)
+      Kernel.warn("#{self.class.name}#write is deprecated.  See REXML::Formatters", uplevel: 1)
       formatter = if indent > -1
           if transitive
             require_relative "formatters/transitive"
@@ -1516,8 +1507,15 @@ module REXML
       formatter.write( self, output )
     end
 
-
     private
+    def calculate_namespaces
+      if parent
+        parent.namespaces.merge(attributes.namespaces)
+      else
+        attributes.namespaces
+      end
+    end
+
     def __to_xpath_helper node
       rv = node.expanded_name.clone
       if node.parent
@@ -1684,11 +1682,7 @@ module REXML
           (num += 1) == index
         }
       else
-        return XPath::first( @element, index )
-        #{ |element|
-        #       return element if element.kind_of? Element
-        #}
-        #return nil
+        XPath::first( @element, index )
       end
     end
 
@@ -1735,7 +1729,7 @@ module REXML
       else
         previous.replace_with element
       end
-      return previous
+      previous
     end
 
     # :call-seq:
@@ -1774,7 +1768,7 @@ module REXML
         child == element
       end
       return rv if found == element
-      return -1
+      -1
     end
 
     # :call-seq:
@@ -1853,7 +1847,7 @@ module REXML
         @element.delete element
         element.remove
       end
-      return rv
+      rv
     end
 
     # :call-seq:
@@ -2180,8 +2174,7 @@ module REXML
     #
     def [](name)
       attr = get_attribute(name)
-      return attr.value unless attr.nil?
-      return nil
+      attr&.value
     end
 
     # :call-seq:
@@ -2324,11 +2317,11 @@ module REXML
             return attr
           end
         end
-        element_document = @element.document
-        if element_document and element_document.doctype
+        doctype = @element.document&.doctype
+        if doctype
           expn = @element.expanded_name
-          expn = element_document.doctype.name if expn.size == 0
-          attr_val = element_document.doctype.attribute_of(expn, name)
+          expn = doctype.name if expn.size == 0
+          attr_val = doctype.attribute_of(expn, name)
           return Attribute.new( name, attr_val ) if attr_val
         end
         return nil
@@ -2336,7 +2329,7 @@ module REXML
       if attr.kind_of? Hash
         attr = attr[ @element.prefix ]
       end
-      return attr
+      attr
     end
 
     # :call-seq:
@@ -2370,8 +2363,9 @@ module REXML
       end
 
       unless value.kind_of? Attribute
-        if @element.document and @element.document.doctype
-          value = Text::normalize( value, @element.document.doctype )
+        doctype = @element.document&.doctype
+        if doctype
+          value = Text::normalize( value, doctype )
         else
           value = Text::normalize( value, nil )
         end
@@ -2389,7 +2383,7 @@ module REXML
       else
         store value.name, value
       end
-      return @element
+      @element
     end
 
     # :call-seq:
@@ -2408,10 +2402,11 @@ module REXML
       each_attribute do |attribute|
         ns << attribute.name if attribute.prefix == 'xmlns'
       end
-      if @element.document and @element.document.doctype
+      doctype = @element.document&.doctype
+      if doctype
         expn = @element.expanded_name
-        expn = @element.document.doctype.name if expn.size == 0
-        @element.document.doctype.attributes_of(expn).each {
+        expn = doctype.name if expn.size == 0
+        doctype.attributes_of(expn).each {
           |attribute|
           ns << attribute.name if attribute.prefix == 'xmlns'
         }
@@ -2433,10 +2428,11 @@ module REXML
       each_attribute do |attribute|
         namespaces[attribute.name] = attribute.value if attribute.prefix == 'xmlns' or attribute.name == 'xmlns'
       end
-      if @element.document and @element.document.doctype
+      doctype = @element.document&.doctype
+      if doctype
         expn = @element.expanded_name
-        expn = @element.document.doctype.name if expn.size == 0
-        @element.document.doctype.attributes_of(expn).each {
+        expn = doctype.name if expn.size == 0
+        doctype.attributes_of(expn).each {
           |attribute|
           namespaces[attribute.name] = attribute.value if attribute.prefix == 'xmlns' or attribute.name == 'xmlns'
         }
@@ -2491,9 +2487,7 @@ module REXML
           old.each_value{|v| repl = v}
           store name, repl
         end
-      elsif old.nil?
-        return @element
-      else # the supplied attribute is a top-level one
+      elsif old # the supplied attribute is a top-level one
         super(name)
       end
       @element
@@ -2547,7 +2541,7 @@ module REXML
         rv << attribute if attribute.expanded_name == name
       }
       rv.each{ |attr| attr.remove }
-      return rv
+      rv
     end
 
     # :call-seq:

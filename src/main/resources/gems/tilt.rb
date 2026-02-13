@@ -5,7 +5,7 @@ require_relative 'tilt/template'
 # Namespace for Tilt. This module is not intended to be included anywhere.
 module Tilt
   # Current version.
-  VERSION = '2.6.0'
+  VERSION = '2.7.0'
 
   EMPTY_ARRAY = [].freeze
   private_constant :EMPTY_ARRAY
@@ -163,7 +163,6 @@ module Tilt
   register_lazy :CSVTemplate,          'tilt/csv',       'rcsv'
   register_lazy :CoffeeScriptTemplate, 'tilt/coffee',    'coffee'
   register_lazy :CoffeeScriptLiterateTemplate, 'tilt/coffee', 'litcoffee'
-  register_lazy :CreoleTemplate,       'tilt/creole',    'wiki', 'creole'
   register_lazy :EtanniTemplate,       'tilt/etanni',    'etn', 'etanni'
   register_lazy :HamlTemplate,         'tilt/haml',      'haml'
   register_lazy :LiquidTemplate,       'tilt/liquid',    'liquid'
