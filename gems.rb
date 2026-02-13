@@ -2,6 +2,7 @@
 
 source 'https://rubygems.org'
 
+gem 'bigdecimal'
 gem 'concurrent-ruby'
 gem 'kramdown'
 gem 'listen'
