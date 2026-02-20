@@ -13,6 +13,7 @@ module LocaleHelper
     "nb" => "text.language.norwegian",
     "en" => "text.language.english",
     "fi" => "text.language.finnish",
+    "it" => "text.language.italiano",
     "sv" => "text.language.swedish",
     "iw" => "text.language.hebrew",
   }.freeze
