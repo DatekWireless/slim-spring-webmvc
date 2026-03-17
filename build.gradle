@@ -7,7 +7,7 @@ plugins {
 }
 
 group 'no.datek'
-version '1.1.24'
+version '1.1.25'
 final String JRUBY_VERSION = '10.0.3.0';
 
 repositories {
@@ -83,6 +83,9 @@ jreleaser {
       mavenCentral {
         sonatype {
           active = 'ALWAYS'
+          connectTimeout: 30
+          readTimeout: 300
+
           url = 'https://central.sonatype.com/api/v1/publisher'
           stagingRepository('build/staging-deploy')
         }
