@@ -170,6 +170,7 @@ module FormHelper
     prepend = opts.delete(:prepend)
     append = opts.delete(:append)
     wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : WRAPPER_CLASS
+    input_group_class = opts.delete(:input_group_class)
     required = opts[:required]
 
     if hide_label
@@ -180,7 +181,7 @@ module FormHelper
       html << %{ style="#{label_style}"} if label_style
       html << %{>#{label}</label> }
     end
-    html << %{<div class="input-group flex-nowrap" >} if append || prepend
+    html << %{<div class="input-group flex-nowrap #{input_group_class}" >} if append || prepend
     if prepend
       [*prepend].compact.each do |addon|
         if addon=~ /\A<\w.*/
@@ -214,7 +215,7 @@ module FormHelper
   def hidden_input(object, field_name, **opts)
     id_name = opts.delete(:id) || field_name
 
-    field_value = object_field_value(object, field_name)
+    field_value = opts.delete(:value) || object_field_value(object, field_name)
 
     html = +%{<input type="hidden" name="#{field_name}" id="#{id_name}" value="#{field_value}"}
 
