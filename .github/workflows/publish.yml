@@ -20,19 +20,19 @@ jobs:
       # Step 2
       # Required step
       - name: Check out the repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       # Step 3
       # Optional step
       - name: Validate Gradle wrapper
-        uses: gradle/wrapper-validation-action@v2
+        uses: gradle/wrapper-validation-action@v3
 
       # Step 4
       # Reguired step
       - name: Set up Java 21 JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
           java-version: 21
@@ -41,7 +41,7 @@ jobs:
           check-latest: true
 
       # Step 5
-      # Optional step, but recommended as user often commit the gradle wrapper jar without execute permissions.
+      # Optional step, but recommended as users often commit the Gradle wrapper jar without "execute" permissions.
       - name: Change wrapper permissions
         run: chmod +x ./gradlew
 
@@ -65,7 +65,7 @@ jobs:
       # Persist logs
       - name: JReleaser release output
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: jreleaser-release
           path: |
