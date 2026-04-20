@@ -1,13 +1,13 @@
 plugins {
   id 'java-library'
-  id "io.spring.dependency-management" version "1.1.5"
-  id "org.springframework.boot" version "3.3.4"
+  id "io.spring.dependency-management" version "1.1.7"
+  id "org.springframework.boot" version "4.0.5"
   id 'maven-publish'
   id 'org.jreleaser' version '1.23.0'
 }
 
 group 'no.datek'
-version '1.1.27'
+version '2.0.0'
 final String JRUBY_VERSION = '10.0.4.0';
 
 repositories {

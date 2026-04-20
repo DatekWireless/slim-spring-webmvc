@@ -21,7 +21,7 @@ module SlimHelper
 
     model_map = { content_store: content_store }.update(params)
     request.setAttribute(SlimRenderer::PARTIAL_ATTR, true)
-    response = StringResponse.new(request.character_encoding)
+    response = StringResponse.new
     view.render(model_map, request, response)
     response.body
   rescue Exception => e # rubocop: disable Lint/RescueException
