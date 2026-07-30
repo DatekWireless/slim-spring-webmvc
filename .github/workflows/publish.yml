@@ -4,52 +4,55 @@ on:
   release:
     types: [ created ]
 
+# Don't let two release runs publish/stage concurrently and clobber each other.
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   publish:
     name: Build, Publish, Release Artifacts
     runs-on: ubuntu-latest
+    # JReleaser updates the GitHub release and uploads assets via GITHUB_TOKEN.
+    permissions:
+      contents: write
 
     steps:
-      # Step 1
-      # This is optional and only if you want to set the timezone
+      # Optional: set the timezone so build/changelog timestamps are Europe/Oslo.
       - name: Setup timezone
         run: |
           sudo timedatectl set-timezone Europe/Oslo
           timedatectl
 
-      # Step 2
-      # Required step
       - name: Check out the repo
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      # Step 3
-      # Optional step
       - name: Validate Gradle wrapper
-        uses: gradle/actions/wrapper-validation@v3
+        uses: gradle/actions/wrapper-validation@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
 
-      # Step 4
-      # Reguired step
-      - name: Set up Java 21 JDK
+      - name: Set up Java 25 JDK
         uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
-          java-version: 21
-          architecture: x64
-          cache: 'gradle'
+          java-version: 25
           check-latest: true
 
-      # Step 5
-      # Optional step, but recommended as users often commit the Gradle wrapper jar without "execute" permissions.
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+
+      # Users often commit the Gradle wrapper without the execute bit.
       - name: Change wrapper permissions
         run: chmod +x ./gradlew
 
-      # Step 6
+      # Gate the release on a green build (compiles + runs tests, incl. SlimConfigurerTest).
+      - name: Build and test
+        run: ./gradlew build
+
       - name: Stage publication locally
         run: ./gradlew publish --info
 
-      # Step 7
       - name: Publish artifacts to Maven Central with JReleaser Gradle plugin
         env:
           JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

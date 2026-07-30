@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  # Dev validation. Releases are cut from master and handled by publish.yml (on: release);
+  # mark release/version-bump commits with "[skip ci]" so this workflow skips them (GitHub
+  # honors [skip ci] natively on push/pull_request). Tag pushes never match branches: [master].
+  push:
+    branches: [ master ]
+  pull_request:
+  workflow_dispatch:
+
+# One in-flight run per ref; newer pushes cancel the older run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build & test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v6
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+
+      - name: Set up Java 25 JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'zulu'
+          java-version: 25
+          check-latest: true
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+
+      - name: Change wrapper permissions
+        run: chmod +x ./gradlew
+
+      - name: Build and test
+        run: ./gradlew build

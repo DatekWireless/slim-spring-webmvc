@@ -25,11 +25,18 @@ dependencies {
 @ComponentScan("no.datek.slim")
 ```
 
+## Building
+
+Requires **JDK 25** (the Gradle toolchain targets Java 25) and builds with **Gradle 9.6**
+via the wrapper:
+
+    ./gradlew build
+
 ## Update JRuby
 
 Edit `build.gradle` and set the desired JRuby version:
 
-    final String JRUBY_VERSION = '9.4.8.0';
+    final String JRUBY_VERSION = '10.0.4.0';
 
 
 ## Update gems
