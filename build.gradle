@@ -6,8 +6,8 @@ plugins {
   id 'org.jreleaser' version '1.23.0'
 }
 
-group 'no.datek'
-version '2.0.1'
+group = 'no.datek'
+version = '2.0.2'
 final String JRUBY_VERSION = '10.0.4.0';
 
 repositories {
@@ -18,11 +18,18 @@ repositories {
 dependencies {
   implementation 'org.springframework.boot:spring-boot-starter-web'
   implementation "org.jruby:jruby:$JRUBY_VERSION"
+  testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
 java {
   withJavadocJar()
   withSourcesJar()
+}
+
+// This is a library, not an executable app: disable Spring Boot's bootJar (no main class) so
+// `build`/`assemble` succeed. Publishing still uses the plain library jar via `components.java`.
+tasks.named('bootJar') {
+  enabled = false
 }
 
 test {
