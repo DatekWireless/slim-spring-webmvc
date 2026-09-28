@@ -37,7 +37,7 @@ module FormHelper
     end
     html << %{<input type="checkbox" name="#{field_name}" id="#{id_name}" #{'checked="checked"' if checked} #{:disabled if disabled}}
     opts.each do |key, value|
-      html << %{ #{key}="#{value}"}
+      html << %{ #{key}="#{CGI.escapeHTML(value.to_s)}"}
     end
     html << "/>"
 
@@ -102,7 +102,7 @@ module FormHelper
     html = +'<div class="form-check mb-0">'
     html << %{<input type="checkbox" class="form-check-input" name="#{field_name}" id="#{id_name}" #{'checked="checked"' if checked} #{:disabled if disabled}}
     opts.each do |key, value|
-      html << %{ #{key}="#{value}"}
+      html << %{ #{key}="#{CGI.escapeHTML(value.to_s)}"}
     end
     html << "/>"
     unless no_hidden
@@ -133,10 +133,10 @@ module FormHelper
 
     html = +""
     field_value = value || object_field_value(object, field_name)
-    html << %{<input type="#{type}" name="#{field_name}" id="#{id_name}" value="#{field_value}"}
-    html << %{ #{:disabled if disabled} #{:readonly if readonly} #{:required if required} #{'data-1p-ignore' if ignore_password_managers} #{"placeholder='#{placeholder}'" if placeholder}}
+    html << %{<input type="#{type}" name="#{field_name}" id="#{id_name}" value="#{CGI.escapeHTML(field_value.to_s)}"}
+    html << %{ #{:disabled if disabled} #{:readonly if readonly} #{:required if required} #{'data-1p-ignore' if ignore_password_managers} #{"placeholder='#{CGI.escapeHTML(placeholder.to_s)}'" if placeholder}}
     opts.each do |key, value|
-      html << %{ #{key}="#{value}"}
+      html << %{ #{key}="#{CGI.escapeHTML(value.to_s)}"}
     end
     html << "/>"
     html
@@ -217,10 +217,10 @@ module FormHelper
 
     field_value = opts.delete(:value) || object_field_value(object, field_name)
 
-    html = +%{<input type="hidden" name="#{field_name}" id="#{id_name}" value="#{field_value}"}
+    html = +%{<input type="hidden" name="#{field_name}" id="#{id_name}" value="#{CGI.escapeHTML(field_value.to_s)}"}
 
     opts.each do |key, value|
-      html << %{ #{key}="#{value}"}
+      html << %{ #{key}="#{CGI.escapeHTML(value.to_s)}"}
     end
     html << "/>"
     html
@@ -251,10 +251,10 @@ module FormHelper
     html << %{<textarea name="#{field_name}" id="#{id_name}" #{:disabled if disabled}}
 
     opts.each do |key, value|
-      html << %{ #{key}="#{value}"}
+      html << %{ #{key}="#{CGI.escapeHTML(value.to_s)}"}
     end
     html << ">"
-    html << (object.try(field_name) || object.try(:[], field_name)).to_s
+    html << CGI.escapeHTML((object.try(field_name) || object.try(:[], field_name)).to_s)
     html << "</textarea>"
     html << "<label for='#{id_name}' style='width:auto'>#{appendix}</label></span>" if appendix
     html << "<br/>" unless no_break
@@ -301,7 +301,7 @@ module FormHelper
       html << %{ data-allow-clear='true'}
     end
     opts.each do |key, value|
-      html << %{ #{key}="#{value}"}
+      html << %{ #{key}="#{CGI.escapeHTML(value.to_s)}"}
     end
     html << ">"
 
@@ -317,8 +317,8 @@ module FormHelper
 
     selected_values = multiple ? field_value.split(',') : [field_value]
     option_map.each do |value, label = value|
-      html << %{<option value="#{value}"}
-      html << %{ ondblclick="#{ondblclick}"} if ondblclick
+      html << %{<option value="#{CGI.escapeHTML(value.to_s)}"}
+      html << %{ ondblclick="#{CGI.escapeHTML(ondblclick.to_s)}"} if ondblclick
       if selected_values.include?(value.to_s.strip)
         html << %{ selected="selected"}
       end
@@ -406,9 +406,9 @@ module FormHelper
     end
     html << '>'
 
-    html << %{<input type="text" name="#{field_name}" class="form-control datetime #{classes}" id="#{id_name}" value="#{object_field_value(object, field_name)}"}
+    html << %{<input type="text" name="#{field_name}" class="form-control datetime #{classes}" id="#{id_name}" value="#{CGI.escapeHTML(object_field_value(object, field_name))}"}
     opts.each do |key, value|
-      html << %{ #{key}="#{value}"}
+      html << %{ #{key}="#{CGI.escapeHTML(value.to_s)}"}
     end
     html << "/>"
 
