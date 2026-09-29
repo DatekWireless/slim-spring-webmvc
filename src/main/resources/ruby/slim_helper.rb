@@ -122,9 +122,16 @@ module SlimHelper
     d.strftime(format)
   end
 
+  # Kramdown passes raw HTML straight through, so user input could inject scripts.
+  # relaxed() lacks <hr>, which Kramdown uses for `---`.
+  MARKDOWN_SAFELIST = Java::OrgJsoupSafety::Safelist.relaxed.addTags('hr').preserveRelativeLinks(true)
+
   def markdown(text)
     return "" if text.nil? || text.strip.empty?
 
-    Kramdown::Document.new(text).to_html
+    html = Kramdown::Document.new(text).to_html
+    # The base URI is only there so relative links survive; it never appears in the output.
+    Java::OrgJsoup::Jsoup.clean(html, 'http://localhost/', MARKDOWN_SAFELIST,
+                                Java::OrgJsoupNodes::Document::OutputSettings.new.prettyPrint(false))
   end
 end
