@@ -66,7 +66,7 @@ module SlimRenderer
     templ = TEMPLATE_CACHE.compute_if_absent(rendering_context.url) do |key|
       CONTENT_CACHE.compute_if_absent(template.hash) do |content_key|
         LOG.info "Load SLIM template #{rendering_context.url.inspect}"
-        Slim::Template.new(rendering_context.url) { template }
+        Slim::Template.new(rendering_context.url, skip_compiled_encoding_detection: true) { template }
       end
     end
     page_html = templ.render(context)
@@ -92,7 +92,7 @@ module SlimRenderer
         content = stream.to_io.read
         CONTENT_CACHE.compute_if_absent(content.hash) do |content_key|
           LOG.info "Load SLIM template #{layout_template_path.inspect}"
-          Slim::Template.new(layout_template_path) { content }
+          Slim::Template.new(layout_template_path, skip_compiled_encoding_detection: true) { content }
         end
       end
       layout.render(context) { page_html }
