@@ -86,4 +86,12 @@ class FormHelperTest {
         assertThat(render("bootstrap_checkbox({ enabled: 'true' }, :enabled, value: 'a&b')"))
                 .contains("value=\"a&amp;b\"");
     }
+
+    @Test
+    void dateInputFeedbackIsRenderedOutsideInputGroup() {
+        String html = render("bootstrap_date_input({ day: '2025-01-01' }, :day, invalid_input: 'Expired')");
+
+        assertThat(html).contains("is-invalid")
+                .contains("</label></div><div class=\"invalid-feedback d-block\">Expired</div>");
+    }
 }

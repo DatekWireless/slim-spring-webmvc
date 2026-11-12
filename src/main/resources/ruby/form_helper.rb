@@ -466,10 +466,10 @@ module FormHelper
       html << %{</label>}
     end
 
-    if invalid_input
-      html << %{<div class="invalid-feedback">#{invalid_input}</div>}
-    end
     html << %{</div>}
+    if invalid_input
+      html << %{<div class="invalid-feedback d-block">#{invalid_input}</div>}
+    end
     <<~HTML
       <div class="#{wrapper_class}">#{html}</div>
     HTML
