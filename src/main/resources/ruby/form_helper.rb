@@ -390,7 +390,7 @@ module FormHelper
     input_group_style = opts.delete(:input_group_style)
     label_key = label_key_opt(opts, field_name)
     id_name = opts.delete(:id) || field_name
-    classes = opts.delete(:class)
+    classes = field_classes(object, field_name, opts.delete(:class))
     wrapper_class = opts.key?(:wrapper_class) ? opts.delete(:wrapper_class) : WRAPPER_CLASS
     wrapper_classes = opts.delete(:wrapper_class)
 
@@ -406,7 +406,7 @@ module FormHelper
     end
     html << '>'
 
-    html << %{<input type="text" name="#{field_name}" class="form-control datetime #{classes}" id="#{id_name}" value="#{CGI.escapeHTML(object_field_value(object, field_name))}"}
+    html << %{<input type="text" name="#{field_name}" class="#{classes} datetime" id="#{id_name}" value="#{CGI.escapeHTML(object_field_value(object, field_name))}"}
     opts.each do |key, value|
       html << %{ #{key}="#{CGI.escapeHTML(value.to_s)}"}
     end

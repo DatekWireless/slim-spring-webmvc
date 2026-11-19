@@ -88,6 +88,17 @@ class FormHelperTest {
     }
 
     @Test
+    void datetimeInputIsMarkedInvalidWhenTheFieldHasErrors() {
+        String withErrors = "Class.new { def hasFieldErrors(field) = field == 'from'; def [](field) = '' }.new";
+
+        assertThat(render("datetime_input(" + withErrors + ", :from)"))
+                .contains("class=\"form-control is-invalid datetime\"");
+        assertThat(render("datetime_input(" + withErrors + ", :to)")).doesNotContain("is-invalid");
+        assertThat(render("datetime_input({ from: '' }, :from, class: 'wide')"))
+                .contains("class=\"form-control wide datetime\"");
+    }
+
+    @Test
     void dateInputFeedbackIsRenderedOutsideInputGroup() {
         String html = render("bootstrap_date_input({ day: '2025-01-01' }, :day, invalid_input: 'Expired')");
 
